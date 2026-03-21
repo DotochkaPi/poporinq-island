@@ -132,19 +132,28 @@ class GameScene extends Phaser.Scene {
                   + (this.waveNum > WAVE_COUNTS.length ? (this.waveNum - WAVE_COUNTS.length) * 5 : 0);
     this.popToSpawn = count;
     this.popSpawned = 0;
+    this.popOnMapLimit = Math.max(1, Math.ceil(count * 0.5)); // 50% от волны на карте
     this.waveState = 'spawning';
     this.hudWave.setText('🌊 Волна ' + this.waveNum + ' (' + count + ')');
 
     // Показываем анонс волны
     this.showWaveAnnounce('Волна ' + this.waveNum);
 
-    // Спавн с интервалом
-    this.spawnTimer = this.time.addEvent({
-      delay: 800,
-      callback: this.spawnOnePop,
-      callbackScope: this,
-      repeat: count - 1
-    });
+    // Первоначальный спавн до лимита
+    this.fillWaveToLimit();
+  }
+
+  fillWaveToLimit() {
+    if (this.gameOver || this.waveState !== 'spawning') return;
+    const aliveNonBoss = this.pops.getChildren().filter(p => p.alive && !p.isBossMinion).length;
+    const canSpawn = Math.min(
+      this.popOnMapLimit - aliveNonBoss,
+      this.popToSpawn - this.popSpawned
+    );
+    for (let i = 0; i < canSpawn; i++) {
+      this.popSpawned++;
+      this.spawnPop(false);
+    }
   }
 
   showWaveAnnounce(text) {
@@ -312,7 +321,13 @@ class GameScene extends Phaser.Scene {
     this.hudKills.setText('⚔️ ' + this.killCount);
     this.tweens.add({
       targets: pop, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
-      onComplete: () => { this.pops.remove(pop, true, true); }
+      onComplete: () => {
+        this.pops.remove(pop, true, true);
+        // Добавляем нового если ещё есть квота
+        if (this.waveState === 'spawning' && !pop.isBossMinion) {
+          this.time.delayedCall(400, () => this.fillWaveToLimit());
+        }
+      }
     });
   }
 
