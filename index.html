@@ -73,7 +73,9 @@ class GameScene extends Phaser.Scene {
     // Камера
     this.cameras.main.setBounds(0, 0, ARENA_W, ARENA_H);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    this.cameras.main.setZoom(1.2);
+    // Зум зависит от размера экрана — на мобиле меньше
+    const zoom = window.innerWidth < 500 ? 0.7 : 1.0;
+    this.cameras.main.setZoom(zoom);
 
     // Группы
     this.pops = this.add.group();
@@ -431,17 +433,18 @@ class GameScene extends Phaser.Scene {
   }
 
   createHUD() {
-    const s = { fontSize: '18px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 3 };
-    this.hudKills = this.add.text(16, 16, '⚔️ 0', s).setScrollFactor(0).setDepth(20);
-    this.hudHP = this.add.text(16, 44, '❤️ 100', s).setScrollFactor(0).setDepth(20);
-    this.hudWave = this.add.text(16, 72, '🌊 Волна 1', s).setScrollFactor(0).setDepth(20);
+    const pad = 20; // отступ от края
+    const s = { fontSize: '16px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 3 };
+    this.hudKills = this.add.text(pad, 14, '⚔️ 0', s).setScrollFactor(0).setDepth(20);
+    this.hudHP = this.add.text(pad, 38, '❤️ 100', s).setScrollFactor(0).setDepth(20);
+    this.hudWave = this.add.text(pad, 62, '🌊 Волна 1', s).setScrollFactor(0).setDepth(20);
 
     this.hpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
     this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawHPBar(100);
 
-    this.hudLevel = this.add.text(16, 114, 'LVL 1', {
-      fontSize: '14px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
+    this.hudLevel = this.add.text(pad, 104, 'LVL 1', {
+      fontSize: '13px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
     }).setScrollFactor(0).setDepth(20);
 
     this.xpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
@@ -449,36 +452,38 @@ class GameScene extends Phaser.Scene {
     this.drawXPBar(0, 50);
 
     // Экипировка — 5 слотов снизу слева
-    const gearY = this.cameras.main.height - 36;
+    const gearY = this.cameras.main.height - 40;
     const gearStyle = { fontSize: '20px', fill: '#444444', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2 };
     this.gearHudItems = [];
     const ICONS = ['🪖', '⚔️', '🛡️', '🧤', '👢'];
     for (let i = 0; i < 5; i++) {
-      const t = this.add.text(16 + i * 44, gearY, ICONS[i], gearStyle).setScrollFactor(0).setDepth(20);
+      const t = this.add.text(pad + i * 46, gearY, ICONS[i], gearStyle).setScrollFactor(0).setDepth(20);
       this.gearHudItems.push(t);
     }
   }
 
   drawHPBar(hp) {
+    const pad = 20;
     this.hpBarBg.clear();
     this.hpBarBg.fillStyle(0x333333, 0.8);
-    this.hpBarBg.fillRect(14, 96, 154, 14);
+    this.hpBarBg.fillRect(pad - 2, 86, 154, 14);
     this.hpBarFill.clear();
     const maxHp = (this.player && this.player.stats) ? this.player.stats.maxHp : 100;
-    const pct = hp / maxHp;
+    const pct = Math.max(0, hp / maxHp);
     const color = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff3333;
     this.hpBarFill.fillStyle(color);
-    this.hpBarFill.fillRect(16, 98, 150 * pct, 10);
+    this.hpBarFill.fillRect(pad, 88, 150 * pct, 10);
   }
 
   drawXPBar(xp, xpToNext) {
+    const pad = 20;
     this.xpBarBg.clear();
     this.xpBarBg.fillStyle(0x333333, 0.8);
-    this.xpBarBg.fillRect(40, 116, 128, 10);
+    this.xpBarBg.fillRect(pad + 38, 106, 120, 10);
     this.xpBarFill.clear();
     const pct = Math.min(xp / xpToNext, 1);
     this.xpBarFill.fillStyle(0xffdd00, 1);
-    this.xpBarFill.fillRect(42, 118, 124 * pct, 6);
+    this.xpBarFill.fillRect(pad + 40, 108, 116 * pct, 6);
   }
 
   addXP(amount) {
