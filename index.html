@@ -56,9 +56,8 @@ class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, ARENA_W, ARENA_H);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    // Adaptive zoom: show ~600 game units on shortest screen side
-    const shortSide = Math.min(this.scale.width, this.scale.height);
-    const zoom = shortSide / 600;
+    // Zoom: show 500 game units on shortest screen side
+    const zoom = Math.min(this.scale.width, this.scale.height) / 500;
     this.cameras.main.setZoom(zoom);
 
     this.pops = this.add.group();
@@ -405,132 +404,137 @@ class GameScene extends Phaser.Scene {
     const KEYS = ['helm', 'sword', 'armor', 'gloves', 'boots'];
     const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
     KEYS.forEach((key, i) => {
-      const level = this.player.gear[key] || 0;
-      this.gearHudItems[i].setText(LABELS[i] + (level > 0 ? '\n+' + level : ''));
-      this.gearHudItems[i].setStyle({ fill: level > 0 ? '#ffdd44' : '#555555' });
+      const lvl = this.player.gear[key] || 0;
+      this.gearHudItems[i].setText(LABELS[i] + (lvl > 0 ? '\n+' + lvl : ''));
+      this.gearHudItems[i].setColor(lvl > 0 ? '#ffdd44' : '#555555');
     });
   }
 
-  // ---- HUD ----
+  // ---- HUD ---- (all values in % of screen)
+
+  _hud(W, H) {
+    return {
+      px: W * 0.03,         // left padding 3%
+      fs: Math.round(Math.min(W, H) * 0.042),  // font size
+      barW: W * 0.40,       // bar width 40%
+      barH: H * 0.015,      // bar height 1.5%
+      xpH:  H * 0.010,      // xp bar height 1%
+      // top anchors (% of H)
+      y0: H * 0.03,         // kills row
+      y1: H * 0.08,         // HP row
+      y2: H * 0.13,         // Wave row
+      y3: H * 0.18,         // HP bar
+      y4: H * 0.21,         // LVL text
+      y5: H * 0.245,        // XP bar
+      // bottom anchors
+      gearY: H * 0.91,      // gear labels
+      gearH: H * 0.06,      // gear area height
+      gearFs: Math.round(Math.min(W, H) * 0.030),
+      // boss bar (above gear)
+      bossLabelY: H * 0.82,
+      bossBarY:   H * 0.855,
+      bossBarW:   W * 0.60,
+      bossBarH:   H * 0.018,
+    };
+  }
 
   createHUD() {
     const W = this.scale.width;
     const H = this.scale.height;
-    const pad = Math.round(W * 0.04);
-    const fs = Math.round(Math.min(W, H) * 0.038);
-    const lh = Math.round(fs * 1.5);
-    const barW = Math.round(W * 0.4);
-    const barH = Math.round(H * 0.014);
-    const fsS = Math.round(fs * 0.75);
+    const h = this._hud(W, H);
 
-    const s = { fontSize: fs + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000000', strokeThickness: 3 };
+    const s  = { fontSize: h.fs + 'px',              fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3 };
+    const sS = { fontSize: Math.round(h.fs * 0.78) + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 };
 
-    let curY = pad;
-    this.hudKills = this.add.text(pad, curY, 'kills: 0', s).setScrollFactor(0).setDepth(20); curY += lh;
-    this.hudHP    = this.add.text(pad, curY, 'HP: 100', s).setScrollFactor(0).setDepth(20); curY += lh;
-    this.hudWave  = this.add.text(pad, curY, 'Wave 1', s).setScrollFactor(0).setDepth(20); curY += lh + 2;
+    this.hudKills = this.add.text(h.px, h.y0, 'kills: 0', s).setScrollFactor(0).setDepth(20);
+    this.hudHP    = this.add.text(h.px, h.y1, 'HP: 100',  s).setScrollFactor(0).setDepth(20);
+    this.hudWave  = this.add.text(h.px, h.y2, 'Wave 1',   s).setScrollFactor(0).setDepth(20);
 
-    this._hudPad = pad; this._hudBarY = curY; this._hudBarW = barW; this._hudBarH = barH;
-    this.hpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
+    this.hpBarBg   = this.add.graphics().setScrollFactor(0).setDepth(20);
     this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawHPBar(100);
-    curY += barH + 6;
 
-    this.hudLevel = this.add.text(pad, curY, 'LVL 1', {
-      fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
-    }).setScrollFactor(0).setDepth(20);
-    curY += fsS + 4;
+    this.hudLevel = this.add.text(h.px, h.y4, 'LVL 1', sS).setScrollFactor(0).setDepth(20);
 
-    this._hudXpY = curY; this._hudXpBarW = barW; this._hudXpBarH = Math.round(barH * 0.7);
-    this.xpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
+    this.xpBarBg   = this.add.graphics().setScrollFactor(0).setDepth(20);
     this.xpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawXPBar(0, BASE_XP_PER_LEVEL);
 
-    // Gear — bottom strip
-    const gearFs = Math.round(Math.min(W, H) * 0.028);
-    const slotW = Math.round((W - pad * 2) / 5);
-    const gearY = H - pad - Math.round(gearFs * 1.8);
-
+    // Gear strip — bottom
+    const slotW = (W * 0.94) / 5;
     const gearBg = this.add.graphics().setScrollFactor(0).setDepth(19);
     gearBg.fillStyle(0x000000, 0.55);
-    gearBg.fillRect(pad - 4, gearY - 4, slotW * 5 + 8, Math.round(gearFs * 2) + 8);
+    gearBg.fillRect(W * 0.03 - 4, H * 0.89, W * 0.94 + 8, H * 0.10);
 
     this.gearHudItems = [];
     const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
     for (let i = 0; i < 5; i++) {
-      const t = this.add.text(pad + i * slotW + Math.round(slotW / 2), gearY, LABELS[i], {
-        fontSize: gearFs + 'px', fill: '#555555', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2, align: 'center'
+      const t = this.add.text(W * 0.03 + i * slotW + slotW / 2, h.gearY, LABELS[i], {
+        fontSize: h.gearFs + 'px', fill: '#555555', fontFamily: 'Arial',
+        stroke: '#000', strokeThickness: 2, align: 'center'
       }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
       this.gearHudItems.push(t);
     }
-
-    this._gearFs = gearFs; this._gearY = gearY; this._gearSlotW = slotW; this._gearPad = pad;
+    this._W = W; this._H = H;
   }
 
   drawHPBar(hp) {
-    const pad = this._hudPad || 16;
-    const y = this._hudBarY || 80;
-    const w = this._hudBarW || 150;
-    const h = this._hudBarH || 10;
+    const W = this._W || this.scale.width;
+    const H = this._H || this.scale.height;
+    const h = this._hud(W, H);
     this.hpBarBg.clear();
     this.hpBarBg.fillStyle(0x111111, 0.9);
-    this.hpBarBg.fillRect(pad, y, w, h);
+    this.hpBarBg.fillRect(h.px, h.y3, h.barW, h.barH);
     this.hpBarFill.clear();
     const maxHp = (this.player && this.player.stats) ? this.player.stats.maxHp : 100;
     const pct = Math.max(0, Math.min(1, hp / maxHp));
     const color = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff3333;
     this.hpBarFill.fillStyle(color);
-    this.hpBarFill.fillRect(pad + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
+    this.hpBarFill.fillRect(h.px + 1, h.y3 + 1, Math.max(0, (h.barW - 2) * pct), h.barH - 2);
   }
 
   drawXPBar(xp, xpToNext) {
-    const pad = this._hudPad || 16;
-    const y = this._hudXpY || 120;
-    const w = this._hudXpBarW || 150;
-    const h = this._hudXpBarH || 7;
+    const W = this._W || this.scale.width;
+    const H = this._H || this.scale.height;
+    const h = this._hud(W, H);
     this.xpBarBg.clear();
     this.xpBarBg.fillStyle(0x111111, 0.9);
-    this.xpBarBg.fillRect(pad, y, w, h);
+    this.xpBarBg.fillRect(h.px, h.y5, h.barW, h.xpH);
     this.xpBarFill.clear();
     const pct = Math.min(1, xp / xpToNext);
     this.xpBarFill.fillStyle(0xffdd00);
-    this.xpBarFill.fillRect(pad + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
+    this.xpBarFill.fillRect(h.px + 1, h.y5 + 1, Math.max(0, (h.barW - 2) * pct), h.xpH - 2);
   }
 
   // ---- BOSS HP BAR ----
 
   createBossHPBar() {
     if (this.bossHpBg) { this.bossHpBg.destroy(); this.bossHpFill.destroy(); this.bossHpLabel.destroy(); }
-    const W = this.scale.width;
-    const H = this.scale.height;
-    const bw = Math.round(W * 0.6);
+    const W = this._W || this.scale.width;
+    const H = this._H || this.scale.height;
+    const h = this._hud(W, H);
     const cx = W / 2;
-    const gearAreaH = this._gearFs ? Math.round(this._gearFs * 2) + 16 : 50;
-    const bossBarY = H - gearAreaH - Math.round(H * 0.06);
-    const fs = Math.round(Math.min(W, H) * 0.03);
+    const fs = Math.round(Math.min(W, H) * 0.030);
 
-    this.bossHpLabel = this.add.text(cx, bossBarY - fs - 2, 'BOSS', {
+    this.bossHpLabel = this.add.text(cx, h.bossLabelY, 'BOSS', {
       fontSize: fs + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(22);
 
-    this._bossBarX = cx - bw / 2;
-    this._bossBarY = bossBarY;
-    this._bossBarW = bw;
-    this._bossBarH = Math.round(H * 0.02);
-    this.bossHpBg = this.add.graphics().setScrollFactor(0).setDepth(22);
+    this.bossHpBg   = this.add.graphics().setScrollFactor(0).setDepth(22);
     this.bossHpFill = this.add.graphics().setScrollFactor(0).setDepth(23);
+    this._bossBarVals = { x: cx - h.bossBarW / 2, y: h.bossBarY, w: h.bossBarW, hh: h.bossBarH };
     this.drawBossHPBar(1);
   }
 
   drawBossHPBar(pct) {
     if (!this.bossHpBg) return;
-    const x = this._bossBarX, y = this._bossBarY, w = this._bossBarW, h = this._bossBarH || 14;
+    const { x, y, w, hh } = this._bossBarVals;
     this.bossHpBg.clear();
     this.bossHpBg.fillStyle(0x222222, 0.9);
-    this.bossHpBg.fillRect(x, y, w, h);
+    this.bossHpBg.fillRect(x, y, w, hh);
     this.bossHpFill.clear();
     this.bossHpFill.fillStyle(0xff2222);
-    this.bossHpFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * Math.max(0, pct)), h - 2);
+    this.bossHpFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * Math.max(0, pct)), hh - 2);
   }
 
   destroyBossHPBar() {
@@ -708,17 +712,19 @@ class GameScene extends Phaser.Scene {
   }
 }
 
+const W0 = window.innerWidth;
+const H0 = window.innerHeight;
+
 const config = {
   type: Phaser.AUTO,
-  width: window.innerWidth,
-  height: window.innerHeight,
+  width: W0,
+  height: H0,
   backgroundColor: '#0a1a0a',
   scene: GameScene,
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: window.innerWidth,
-    height: window.innerHeight
+    mode: Phaser.Scale.NONE,
+    width: W0,
+    height: H0
   }
 };
 
