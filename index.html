@@ -56,8 +56,9 @@ class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, ARENA_W, ARENA_H);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    // Zoom: show 500 game units on shortest screen side
-    const zoom = Math.min(this.scale.width, this.scale.height) / 500;
+    // Zoom: fit ~500 game units in shortest screen side, but min 1.0 on desktop
+    const shortSide = Math.min(W0, H0);
+    const zoom = shortSide < 600 ? shortSide / 500 : shortSide / 700;
     this.cameras.main.setZoom(zoom);
 
     this.pops = this.add.group();
@@ -439,11 +440,14 @@ class GameScene extends Phaser.Scene {
   }
 
   createHUD() {
-    const W = this.scale.width;
-    const H = this.scale.height;
+    // Store W/H FIRST before any draw calls
+    this._W = W0;
+    this._H = H0;
+    const W = W0;
+    const H = H0;
     const h = this._hud(W, H);
 
-    const s  = { fontSize: h.fs + 'px',              fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3 };
+    const s  = { fontSize: h.fs + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3 };
     const sS = { fontSize: Math.round(h.fs * 0.78) + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 };
 
     this.hudKills = this.add.text(h.px, h.y0, 'kills: 0', s).setScrollFactor(0).setDepth(20);
@@ -475,7 +479,6 @@ class GameScene extends Phaser.Scene {
       }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
       this.gearHudItems.push(t);
     }
-    this._W = W; this._H = H;
   }
 
   drawHPBar(hp) {
