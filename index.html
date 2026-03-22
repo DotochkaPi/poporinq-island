@@ -411,70 +411,69 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  // ---- HUD ---- (all values in % of screen)
-
-  _hud(W, H) {
-    return {
-      px: W * 0.03,         // left padding 3%
-      fs: Math.round(Math.min(W, H) * 0.042),  // font size
-      barW: W * 0.40,       // bar width 40%
-      barH: H * 0.015,      // bar height 1.5%
-      xpH:  H * 0.010,      // xp bar height 1%
-      // top anchors (% of H)
-      y0: H * 0.03,         // kills row
-      y1: H * 0.08,         // HP row
-      y2: H * 0.13,         // Wave row
-      y3: H * 0.18,         // HP bar
-      y4: H * 0.21,         // LVL text
-      y5: H * 0.245,        // XP bar
-      // bottom anchors
-      gearY: H * 0.91,      // gear labels
-      gearH: H * 0.06,      // gear area height
-      gearFs: Math.round(Math.min(W, H) * 0.030),
-      // boss bar (above gear)
-      bossLabelY: H * 0.82,
-      bossBarY:   H * 0.855,
-      bossBarW:   W * 0.60,
-      bossBarH:   H * 0.018,
-    };
-  }
+  // ---- HUD ----
+  // All positions and sizes are % of W0/H0 (screen dimensions)
 
   createHUD() {
-    // Store W/H FIRST before any draw calls
-    this._W = W0;
-    this._H = H0;
     const W = W0;
     const H = H0;
-    const h = this._hud(W, H);
+    this._W = W;
+    this._H = H;
 
-    const s  = { fontSize: h.fs + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3 };
-    const sS = { fontSize: Math.round(h.fs * 0.78) + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 };
+    // Layout constants — all in % of screen
+    const PX   = W * 0.02;                          // left padding: 2% W
+    const FS   = Math.round(Math.min(W, H) * 0.04); // font: 4% min(W,H)
+    const FSS  = Math.round(FS * 0.75);             // small font
+    const BW   = W * 0.38;                          // bar width: 38% W
+    const BH   = H * 0.012;                         // bar height: 1.2% H
+    const XPH  = H * 0.008;                         // xp bar height: 0.8% H
 
-    this.hudKills = this.add.text(h.px, h.y0, 'kills: 0', s).setScrollFactor(0).setDepth(20);
-    this.hudHP    = this.add.text(h.px, h.y1, 'HP: 100',  s).setScrollFactor(0).setDepth(20);
-    this.hudWave  = this.add.text(h.px, h.y2, 'Wave 1',   s).setScrollFactor(0).setDepth(20);
+    // Y positions — top-left anchor
+    const Y_KILLS = H * 0.03;
+    const Y_HP    = H * 0.07;
+    const Y_WAVE  = H * 0.11;
+    const Y_HPBAR = H * 0.15;
+    const Y_LVL   = H * 0.19;
+    const Y_XPBAR = H * 0.22;
+
+    // Gear — bottom anchor
+    const Y_GEAR   = H * 0.92;
+    const FS_GEAR  = Math.round(Math.min(W, H) * 0.030);
+    const SLOT_W   = (W * 0.96) / 5;
+
+    // Store bar params for draw methods
+    this._hp  = { x: PX, y: Y_HPBAR, w: BW, h: BH };
+    this._xp  = { x: PX, y: Y_XPBAR, w: BW, h: XPH };
+
+    const s  = { fontSize: FS  + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3 };
+    const sS = { fontSize: FSS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 };
+
+    this.hudKills = this.add.text(PX, Y_KILLS, 'kills: 0', s).setScrollFactor(0).setDepth(20);
+    this.hudHP    = this.add.text(PX, Y_HP,    'HP: 100',  s).setScrollFactor(0).setDepth(20);
+    this.hudWave  = this.add.text(PX, Y_WAVE,  'Wave 1',   s).setScrollFactor(0).setDepth(20);
 
     this.hpBarBg   = this.add.graphics().setScrollFactor(0).setDepth(20);
     this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawHPBar(100);
 
-    this.hudLevel = this.add.text(h.px, h.y4, 'LVL 1', sS).setScrollFactor(0).setDepth(20);
+    this.hudLevel = this.add.text(PX, Y_LVL, 'LVL 1', sS).setScrollFactor(0).setDepth(20);
 
     this.xpBarBg   = this.add.graphics().setScrollFactor(0).setDepth(20);
     this.xpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawXPBar(0, BASE_XP_PER_LEVEL);
 
-    // Gear strip — bottom
-    const slotW = (W * 0.94) / 5;
+    // Gear strip background
     const gearBg = this.add.graphics().setScrollFactor(0).setDepth(19);
-    gearBg.fillStyle(0x000000, 0.55);
-    gearBg.fillRect(W * 0.03 - 4, H * 0.89, W * 0.94 + 8, H * 0.10);
+    gearBg.fillStyle(0x000000, 0.6);
+    gearBg.fillRect(W * 0.02 - 4, H * 0.90, W * 0.96 + 8, H * 0.09);
 
+    // Gear slots: 5 equal slots from 2%W to 98%W
     this.gearHudItems = [];
     const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
     for (let i = 0; i < 5; i++) {
-      const t = this.add.text(W * 0.03 + i * slotW + slotW / 2, h.gearY, LABELS[i], {
-        fontSize: h.gearFs + 'px', fill: '#555555', fontFamily: 'Arial',
+      const tx = W * 0.02 + i * SLOT_W + SLOT_W / 2;
+      const t = this.add.text(tx, Y_GEAR, LABELS[i], {
+        fontSize: FS_GEAR + 'px', fill: '#555555', fontFamily: 'Arial',
         stroke: '#000', strokeThickness: 2, align: 'center'
       }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
       this.gearHudItems.push(t);
@@ -482,62 +481,61 @@ class GameScene extends Phaser.Scene {
   }
 
   drawHPBar(hp) {
-    const W = this._W || this.scale.width;
-    const H = this._H || this.scale.height;
-    const h = this._hud(W, H);
+    const { x, y, w, h } = this._hp;
     this.hpBarBg.clear();
     this.hpBarBg.fillStyle(0x111111, 0.9);
-    this.hpBarBg.fillRect(h.px, h.y3, h.barW, h.barH);
+    this.hpBarBg.fillRect(x, y, w, h);
     this.hpBarFill.clear();
     const maxHp = (this.player && this.player.stats) ? this.player.stats.maxHp : 100;
     const pct = Math.max(0, Math.min(1, hp / maxHp));
     const color = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff3333;
     this.hpBarFill.fillStyle(color);
-    this.hpBarFill.fillRect(h.px + 1, h.y3 + 1, Math.max(0, (h.barW - 2) * pct), h.barH - 2);
+    this.hpBarFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
   }
 
   drawXPBar(xp, xpToNext) {
-    const W = this._W || this.scale.width;
-    const H = this._H || this.scale.height;
-    const h = this._hud(W, H);
+    const { x, y, w, h } = this._xp;
     this.xpBarBg.clear();
     this.xpBarBg.fillStyle(0x111111, 0.9);
-    this.xpBarBg.fillRect(h.px, h.y5, h.barW, h.xpH);
+    this.xpBarBg.fillRect(x, y, w, h);
     this.xpBarFill.clear();
     const pct = Math.min(1, xp / xpToNext);
     this.xpBarFill.fillStyle(0xffdd00);
-    this.xpBarFill.fillRect(h.px + 1, h.y5 + 1, Math.max(0, (h.barW - 2) * pct), h.xpH - 2);
+    this.xpBarFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
   }
 
   // ---- BOSS HP BAR ----
 
   createBossHPBar() {
     if (this.bossHpBg) { this.bossHpBg.destroy(); this.bossHpFill.destroy(); this.bossHpLabel.destroy(); }
-    const W = this._W || this.scale.width;
-    const H = this._H || this.scale.height;
-    const h = this._hud(W, H);
-    const cx = W / 2;
-    const fs = Math.round(Math.min(W, H) * 0.030);
+    const W = W0;
+    const H = H0;
+    const cx    = W / 2;
+    const bw    = W * 0.60;            // 60% W
+    const bh    = H * 0.015;           // 1.5% H
+    const by    = H * 0.85;            // y = 85% H
+    const lblY  = H * 0.82;            // label above bar
+    const fs    = Math.round(Math.min(W, H) * 0.030);
 
-    this.bossHpLabel = this.add.text(cx, h.bossLabelY, 'BOSS', {
+    this.bossHpLabel = this.add.text(cx, lblY, 'BOSS', {
       fontSize: fs + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(22);
 
+    this._boss = { x: cx - bw / 2, y: by, w: bw, h: bh };
     this.bossHpBg   = this.add.graphics().setScrollFactor(0).setDepth(22);
     this.bossHpFill = this.add.graphics().setScrollFactor(0).setDepth(23);
-    this._bossBarVals = { x: cx - h.bossBarW / 2, y: h.bossBarY, w: h.bossBarW, hh: h.bossBarH };
     this.drawBossHPBar(1);
   }
 
   drawBossHPBar(pct) {
-    if (!this.bossHpBg) return;
-    const { x, y, w, hh } = this._bossBarVals;
+    if (!this.bossHpBg || !this._boss) return;
+    const { x, y, w, h } = this._boss;
     this.bossHpBg.clear();
     this.bossHpBg.fillStyle(0x222222, 0.9);
-    this.bossHpBg.fillRect(x, y, w, hh);
+    this.bossHpBg.fillRect(x, y, w, h);
     this.bossHpFill.clear();
     this.bossHpFill.fillStyle(0xff2222);
-    this.bossHpFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * Math.max(0, pct)), hh - 2);
+    this.bossHpFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * Math.max(0, pct)), h - 2);
   }
 
   destroyBossHPBar() {
@@ -715,6 +713,7 @@ class GameScene extends Phaser.Scene {
   }
 }
 
+// Screen dimensions — read once on page load
 const W0 = window.innerWidth;
 const H0 = window.innerHeight;
 
