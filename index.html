@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
-<html lang="ru">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>РџРѕРїРѕСЂРёРЅРі РђР№Р»РµРЅРґ</title>
+<title>Poporinq Island</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #0a1a0a; }
@@ -18,23 +18,14 @@ const ARENA_H = 1200;
 const PLAYER_SPEED = 200;
 const POP_SPEED = 80;
 const ATTACK_RADIUS = 60;
-const XP_PER_POP = 10;
-const XP_PER_BOSS = 100;
-const BASE_XP_PER_LEVEL = 50;
-
-const UPGRADES = [
-  { key: 'damage',      icon: 'вљ”пёЏ',  name: 'РЎРёР»Р°',           desc: '+20% СѓСЂРѕРЅ',             apply: (p) => { p.stats.damage *= 1.2; } },
-  { key: 'attackSpeed', icon: 'вљЎ',  name: 'РЎРєРѕСЂРѕСЃС‚СЊ Р°С‚Р°РєРё', desc: '-15% РёРЅС‚РµСЂРІР°Р» Р°С‚Р°РєРё',   apply: (p) => { p.stats.attackSpeed *= 0.85; } },
-  { key: 'defense',     icon: 'рџ›ЎпёЏ', name: 'Р—Р°С‰РёС‚Р°',          desc: '-15% СѓСЂРѕРЅ РѕС‚ РІСЂР°РіРѕРІ',   apply: (p) => { p.stats.defense += 1; } },
-  { key: 'hp',          icon: 'вќ¤пёЏ',  name: 'Р—РґРѕСЂРѕРІСЊРµ',        desc: '+25 РјР°РєСЃ HP Рё +25 HP',  apply: (p, scene) => { p.stats.maxHp += 25; p.hp = Math.min(p.hp + 25, p.stats.maxHp); } },
-  { key: 'moveSpeed',   icon: 'рџ‘џ',  name: 'РЎРєРѕСЂРѕСЃС‚СЊ',        desc: '+15% СЃРєРѕСЂРѕСЃС‚СЊ РґРІРёР¶РµРЅРёСЏ', apply: (p) => { p.stats.moveSpeed *= 1.15; } }
-];
 const ATTACK_INTERVAL = 1500;
 const POP_DAMAGE = 10;
 const POP_DAMAGE_COOLDOWN = 1000;
-
-// Р’РѕР»РЅС‹: СЃРєРѕР»СЊРєРѕ РџРѕРїРѕСЂРёРЅРіРѕРІ РІ РєР°Р¶РґРѕР№ РІРѕР»РЅРµ
+const XP_PER_POP = 10;
+const XP_PER_BOSS = 100;
+const BASE_XP_PER_LEVEL = 50;
 const WAVE_COUNTS = [10, 15, 20, 25, 30];
+const VIEW_SIZE = 500;
 
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -42,7 +33,6 @@ class GameScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor('#1a3a1a');
 
-    // РђСЂРµРЅР°
     const arena = this.add.graphics();
     arena.fillStyle(0x2d5a2d, 1);
     arena.fillRect(0, 0, ARENA_W, ARENA_H);
@@ -52,10 +42,8 @@ class GameScene extends Phaser.Scene {
     for (let x = 0; x <= ARENA_W; x += 100) arena.lineBetween(x, 0, x, ARENA_H);
     for (let y = 0; y <= ARENA_H; y += 100) arena.lineBetween(0, y, ARENA_W, y);
 
-    // РўРµРєСЃС‚СѓСЂС‹
     this.makeTextures();
 
-    // РРіСЂРѕРє
     this.player = this.add.sprite(ARENA_W / 2, ARENA_H / 2, 'knight');
     this.player.setOrigin(0.5, 0.5).setDepth(5);
     this.player.hp = 100;
@@ -65,32 +53,22 @@ class GameScene extends Phaser.Scene {
     this.player.xpToNext = BASE_XP_PER_LEVEL;
     this.player.stats = { damage: 1.0, attackSpeed: 1.0, defense: 0, maxHp: 100, moveSpeed: 1.0 };
     this.player.gear = { helm: 0, sword: 0, armor: 0, gloves: 0, boots: 0 };
-    this.player.level = 1;
-    this.player.xp = 0;
-    this.player.xpToNext = 50;
-    this.player.stats = { damage: 1.0, attackSpeed: 1.0, defense: 0, maxHp: 100, moveSpeed: 1.0 };
 
-    // РљР°РјРµСЂР°
     this.cameras.main.setBounds(0, 0, ARENA_W, ARENA_H);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    // РђРґР°РїС‚РёРІРЅС‹Р№ Р·СѓРј: РЅР° СЌРєСЂР°РЅРµ РІРёРґРЅРѕ ~500 РёРіСЂРѕРІС‹С… РµРґРёРЅРёС† РїРѕ РјРµРЅСЊС€РµР№ СЃС‚РѕСЂРѕРЅРµ
-    const VIEW_SIZE = 500;
     const zoom = Math.min(this.scale.width, this.scale.height) / VIEW_SIZE;
     this.cameras.main.setZoom(zoom);
 
-    // Р“СЂСѓРїРїС‹
     this.pops = this.add.group();
-
-    // РЎРѕСЃС‚РѕСЏРЅРёРµ РІРѕР»РЅ
     this.waveNum = 0;
-    this.waveState = 'spawning'; // spawning | boss | intermission
+    this.waveState = 'spawning';
     this.popToSpawn = 0;
     this.popSpawned = 0;
+    this.popOnMapLimit = 5;
     this.killCount = 0;
     this.boss = null;
     this.bossMinions = [];
 
-    // РЈРїСЂР°РІР»РµРЅРёРµ
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -99,7 +77,6 @@ class GameScene extends Phaser.Scene {
       right: Phaser.Input.Keyboard.KeyCodes.D
     });
 
-    // Р’РёСЂС‚СѓР°Р»СЊРЅС‹Р№ РґР¶РѕР№СЃС‚РёРє
     this.joystick = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, pointerId: null };
     this.joyBase = this.add.graphics().setScrollFactor(0).setDepth(10);
     this.joyKnob = this.add.graphics().setScrollFactor(0).setDepth(11);
@@ -107,95 +84,67 @@ class GameScene extends Phaser.Scene {
     this.input.on('pointermove', p => this.onPointerMove(p));
     this.input.on('pointerup', p => this.onPointerUp(p));
 
-    // РўР°Р№РјРµСЂ Р°С‚Р°РєРё
     this.time.addEvent({ delay: ATTACK_INTERVAL, callback: this.autoAttack, callbackScope: this, loop: true });
 
-    // HUD
     this.createHUD();
-
-    // РЎРѕСЃС‚РѕСЏРЅРёРµ
     this.gameOver = false;
     this.paused = false;
-
-    // РЎС‚Р°СЂС‚СѓРµРј РїРµСЂРІСѓСЋ РІРѕР»РЅСѓ
     this.startWave();
   }
 
   makeTextures() {
-    // Р С‹С†Р°СЂСЊ
     const kg = this.make.graphics({ x: 0, y: 0, add: false });
     kg.fillStyle(0x4488ff); kg.fillRect(0, 0, 32, 32);
     kg.fillStyle(0x88bbff); kg.fillRect(8, 4, 16, 10);
     kg.fillStyle(0xffdd44); kg.fillRect(13, 0, 6, 6);
     kg.generateTexture('knight', 32, 32); kg.destroy();
 
-    // РџРѕРїРѕСЂРёРЅРі
     const pg = this.make.graphics({ x: 0, y: 0, add: false });
     pg.fillStyle(0xff4444); pg.fillCircle(12, 12, 12);
     pg.fillStyle(0xff8888); pg.fillCircle(8, 9, 3); pg.fillCircle(16, 9, 3);
     pg.fillStyle(0x000000); pg.fillCircle(8, 9, 1.5); pg.fillCircle(16, 9, 1.5);
     pg.generateTexture('pop', 24, 24); pg.destroy();
 
-    // Р‘РѕСЃСЃ РџРѕРїРѕСЂРёРЅРі
     const bg2 = this.make.graphics({ x: 0, y: 0, add: false });
     bg2.fillStyle(0xcc0000); bg2.fillCircle(32, 32, 32);
     bg2.fillStyle(0xff6666); bg2.fillCircle(20, 24, 7); bg2.fillCircle(44, 24, 7);
     bg2.fillStyle(0x000000); bg2.fillCircle(20, 24, 4); bg2.fillCircle(44, 24, 4);
     bg2.fillStyle(0xffdd44);
-    // РљРѕСЂРѕРЅР°
     bg2.fillTriangle(16, 10, 24, 2, 32, 10);
     bg2.fillTriangle(28, 10, 36, 0, 44, 10);
     bg2.fillTriangle(40, 10, 48, 4, 56, 10);
     bg2.generateTexture('boss', 64, 64); bg2.destroy();
   }
 
+  // ---- WAVES ----
+
   startWave() {
     this.waveNum++;
     const count = WAVE_COUNTS[Math.min(this.waveNum - 1, WAVE_COUNTS.length - 1)]
-                  + (this.waveNum > WAVE_COUNTS.length ? (this.waveNum - WAVE_COUNTS.length) * 5 : 0);
+                + (this.waveNum > WAVE_COUNTS.length ? (this.waveNum - WAVE_COUNTS.length) * 5 : 0);
     this.popToSpawn = count;
     this.popSpawned = 0;
-    this.popOnMapLimit = Math.max(1, Math.ceil(count * 0.5)); // 50% РѕС‚ РІРѕР»РЅС‹ РЅР° РєР°СЂС‚Рµ
+    this.popOnMapLimit = Math.max(1, Math.ceil(count * 0.5));
     this.waveState = 'spawning';
-    this.hudWave.setText('рџЊЉ Р’РѕР»РЅР° ' + this.waveNum + ' (' + count + ')');
-
-    // РџРѕРєР°Р·С‹РІР°РµРј Р°РЅРѕРЅСЃ РІРѕР»РЅС‹
-    this.showWaveAnnounce('Р’РѕР»РЅР° ' + this.waveNum);
-
-    // РџРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅС‹Р№ СЃРїР°РІРЅ РґРѕ Р»РёРјРёС‚Р°
+    this.hudWave.setText('Wave ' + this.waveNum + ' (' + count + ')');
+    this.showAnnounce('Wave ' + this.waveNum);
     this.fillWaveToLimit();
   }
 
   fillWaveToLimit() {
     if (this.gameOver || this.waveState !== 'spawning') return;
-    const aliveNonBoss = this.pops.getChildren().filter(p => p.alive && !p.isBossMinion).length;
-    const canSpawn = Math.min(
-      this.popOnMapLimit - aliveNonBoss,
-      this.popToSpawn - this.popSpawned
-    );
-    for (let i = 0; i < canSpawn; i++) {
-      this.popSpawned++;
-      this.spawnPop(false);
-    }
+    const alive = this.pops.getChildren().filter(p => p.alive && !p.isBossMinion).length;
+    const canSpawn = Math.min(this.popOnMapLimit - alive, this.popToSpawn - this.popSpawned);
+    for (let i = 0; i < canSpawn; i++) { this.popSpawned++; this.spawnPop(false); }
   }
 
-  showWaveAnnounce(text) {
-    const cx = this.cameras.main.width / 2;
-    const t = this.add.text(cx, 80, text, {
-      fontSize: '28px', fill: '#ffdd44', fontFamily: 'monospace',
-      stroke: '#000', strokeThickness: 4
+  showAnnounce(text) {
+    const cx = this.scale.width / 2;
+    const fs = Math.round(Math.min(this.scale.width, this.scale.height) * 0.06);
+    const t = this.add.text(cx, this.scale.height * 0.15, text, {
+      fontSize: fs + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 4
     }).setOrigin(0.5).setScrollFactor(0).setDepth(25);
-
-    this.tweens.add({
-      targets: t, alpha: 0, y: 50, duration: 2000, delay: 1000,
-      onComplete: () => t.destroy()
-    });
-  }
-
-  spawnOnePop() {
-    if (this.gameOver) return;
-    this.popSpawned++;
-    this.spawnPop(false);
+    this.tweens.add({ targets: t, alpha: 0, y: t.y - 30, duration: 2000, delay: 1000, onComplete: () => t.destroy() });
   }
 
   spawnPop(isBossMinion = false) {
@@ -206,7 +155,6 @@ class GameScene extends Phaser.Scene {
     else if (side === 1) { x = ARENA_W - margin; y = Phaser.Math.Between(margin, ARENA_H - margin); }
     else if (side === 2) { x = Phaser.Math.Between(margin, ARENA_W - margin); y = ARENA_H - margin; }
     else { x = margin; y = Phaser.Math.Between(margin, ARENA_H - margin); }
-
     const pop = this.add.sprite(x, y, 'pop').setOrigin(0.5).setDepth(4);
     pop.alive = true;
     pop.isBossMinion = isBossMinion;
@@ -218,10 +166,8 @@ class GameScene extends Phaser.Scene {
 
   spawnBoss() {
     this.waveState = 'boss';
-    this.hudWave.setText('рџ’Ђ Р‘РћРЎРЎ!');
-    this.showWaveAnnounce('рџ’Ђ Р‘РћРЎРЎ РџРћРџРћР РРќР“!');
-
-    // Р‘РѕСЃСЃ РїРѕСЏРІР»СЏРµС‚СЃСЏ Сѓ РєСЂР°СЏ
+    this.hudWave.setText('BOSS!');
+    this.showAnnounce('BOSS POPORINQ!');
     const bx = Phaser.Math.Between(200, ARENA_W - 200);
     const by = 80;
     this.boss = this.add.sprite(bx, by, 'boss').setOrigin(0.5).setDepth(6);
@@ -230,79 +176,28 @@ class GameScene extends Phaser.Scene {
     this.boss.alive = true;
     this.boss.setScale(0);
     this.tweens.add({ targets: this.boss, scaleX: 1, scaleY: 1, duration: 400 });
-
-    // HP Р±Р°СЂ Р±РѕСЃСЃР°
     this.createBossHPBar();
-
-    // 5 РјРёРЅСЊРѕРЅРѕРІ РІРѕРєСЂСѓРі
     this.bossMinions = [];
     for (let i = 0; i < 5; i++) {
       const angle = (i / 5) * Math.PI * 2;
-      const mx = bx + Math.cos(angle) * 80;
-      const my = by + Math.sin(angle) * 80;
       const minion = this.add.sprite(
-        Phaser.Math.Clamp(mx, 30, ARENA_W - 30),
-        Phaser.Math.Clamp(my, 30, ARENA_H - 30),
+        Phaser.Math.Clamp(bx + Math.cos(angle) * 80, 30, ARENA_W - 30),
+        Phaser.Math.Clamp(by + Math.sin(angle) * 80, 30, ARENA_H - 30),
         'pop'
       ).setOrigin(0.5).setDepth(4);
-      minion.alive = true;
-      minion.isBossMinion = true;
-      minion.setScale(0);
+      minion.alive = true; minion.isBossMinion = true; minion.setScale(0);
       this.tweens.add({ targets: minion, scaleX: 1, scaleY: 1, duration: 300, delay: i * 100 });
       this.pops.add(minion);
       this.bossMinions.push(minion);
     }
   }
 
-  createBossHPBar() {
-    if (this.bossHpBg) { this.bossHpBg.destroy(); this.bossHpFill.destroy(); this.bossHpLabel.destroy(); }
-    const W = this.scale.width;
-    const H = this.scale.height;
-    const bossBarW = Math.round(W * 0.6);
-    const cx = W / 2;
-    // Р Р°Р·РјРµС‰Р°РµРј РЅР°Рґ Р·РѕРЅРѕР№ СЌРєРёРїРёСЂРѕРІРєРё
-    const gearFs = this._gearFs || 14;
-    const pad = 16;
-    const bossBarY = H - pad - gearFs - 4 - 32; // РІС‹С€Рµ СЌРєРёРїРёСЂРѕРІРєРё
-
-    this.bossHpLabel = this.add.text(cx, bossBarY - 16, 'Р‘РћРЎРЎ', {
-      fontSize: '14px', fill: '#ff4444', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(22);
-
-    this.bossHpBg = this.add.graphics().setScrollFactor(0).setDepth(22);
-    this.bossHpFill = this.add.graphics().setScrollFactor(0).setDepth(23);
-    this._bossBarX = cx - bossBarW / 2;
-    this._bossBarY = bossBarY;
-    this._bossBarW = bossBarW;
-    this.drawBossHPBar(1);
-  }
-
-  drawBossHPBar(pct) {
-    if (!this.bossHpBg) return;
-    const x = this._bossBarX;
-    const y = this._bossBarY;
-    const w = this._bossBarW;
-    this.bossHpBg.clear();
-    this.bossHpBg.fillStyle(0x333333, 0.9);
-    this.bossHpBg.fillRect(x, y, w, 14);
-    this.bossHpFill.clear();
-    this.bossHpFill.fillStyle(0xff2222, 1);
-    this.bossHpFill.fillRect(x + 1, y + 1, (w - 2) * Math.max(0, pct), 12);
-  }
-
-  destroyBossHPBar() {
-    if (this.bossHpBg) { this.bossHpBg.destroy(); this.bossHpBg = null; }
-    if (this.bossHpFill) { this.bossHpFill.destroy(); this.bossHpFill = null; }
-    if (this.bossHpLabel) { this.bossHpLabel.destroy(); this.bossHpLabel = null; }
-  }
+  // ---- COMBAT ----
 
   autoAttack() {
     if (this.gameOver || this.paused) return;
-
-    // Р•СЃР»Рё РµСЃС‚СЊ Р±РѕСЃСЃ Рё Р¶РёРІС‹Рµ РјРёРЅСЊРѕРЅС‹ вЂ” Р°С‚Р°РєСѓРµРј С‚РѕР»СЊРєРѕ РјРёРЅСЊРѕРЅРѕРІ
     const minionsAlive = this.bossMinions.filter(m => m.alive);
     if (this.boss && this.boss.alive && minionsAlive.length > 0) {
-      // Р‘Р»РёР¶Р°Р№С€РёР№ РјРёРЅСЊРѕРЅ
       let nearest = null, minDist = ATTACK_RADIUS;
       for (const m of minionsAlive) {
         const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, m.x, m.y);
@@ -311,27 +206,20 @@ class GameScene extends Phaser.Scene {
       if (nearest) this.killPop(nearest);
       return;
     }
-
-    // РђС‚Р°РєСѓРµРј Р±РѕСЃСЃР° РµСЃР»Рё РјРёРЅСЊРѕРЅС‹ РєРѕРЅС‡РёР»РёСЃСЊ
     if (this.boss && this.boss.alive) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
       if (d < ATTACK_RADIUS + 32) {
         this.boss.hp -= 20 * this.player.stats.damage;
         this.drawBossHPBar(this.boss.hp / this.boss.maxHp);
-        // Р¤Р»СЌС€ Р±РѕСЃСЃР°
         this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
-
         const line = this.add.graphics().setDepth(7);
         line.lineStyle(3, 0xff8800, 1);
         line.lineBetween(this.player.x, this.player.y, this.boss.x, this.boss.y);
         this.time.delayedCall(120, () => line.destroy());
-
         if (this.boss.hp <= 0) this.killBoss();
       }
       return;
     }
-
-    // РћР±С‹С‡РЅС‹Рµ РїРѕРїРѕСЂРёРЅРіРё
     const pops = this.pops.getChildren();
     let nearest = null, minDist = ATTACK_RADIUS;
     for (const pop of pops) {
@@ -352,13 +240,12 @@ class GameScene extends Phaser.Scene {
     if (!pop.alive) return;
     pop.alive = false;
     this.killCount++;
-    this.hudKills.setText('вљ”пёЏ ' + this.killCount);
+    this.hudKills.setText('kills: ' + this.killCount);
     this.addXP(XP_PER_POP);
     this.tweens.add({
       targets: pop, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
       onComplete: () => {
         this.pops.remove(pop, true, true);
-        // Р”РѕР±Р°РІР»СЏРµРј РЅРѕРІРѕРіРѕ РµСЃР»Рё РµС‰С‘ РµСЃС‚СЊ РєРІРѕС‚Р°
         if (this.waveState === 'spawning' && !pop.isBossMinion) {
           this.time.delayedCall(400, () => this.fillWaveToLimit());
         }
@@ -369,169 +256,20 @@ class GameScene extends Phaser.Scene {
   killBoss() {
     this.boss.alive = false;
     this.killCount++;
-    this.hudKills.setText('вљ”пёЏ ' + this.killCount);
+    this.hudKills.setText('kills: ' + this.killCount);
     this.destroyBossHPBar();
-
     this.tweens.add({
       targets: this.boss, scaleX: 0, scaleY: 0, alpha: 0, duration: 400,
       onComplete: () => { this.boss.destroy(); this.boss = null; }
     });
-
     this.addXP(XP_PER_BOSS);
-    this.showWaveAnnounce('рџЏ† Р‘РћРЎРЎ РџРћР’Р•Р Р–Р•Рќ!');
-
-    // РџРѕРєР°Р·С‹РІР°РµРј Р·Р°С‚РѕС‡РєСѓ
+    this.showAnnounce('BOSS DEFEATED!');
     this.time.delayedCall(800, () => { if (!this.gameOver) this.showEnchantCard(); });
-
-    // РџР°СѓР·Р° РїРµСЂРµРґ СЃР»РµРґСѓСЋС‰РµР№ РІРѕР»РЅРѕР№
     this.waveState = 'intermission';
-    this.time.delayedCall(3000, () => {
-      if (!this.gameOver) this.startWave();
-    });
+    this.time.delayedCall(3000, () => { if (!this.gameOver) this.startWave(); });
   }
 
-  showEnchantCard() {
-    const SLOTS = [
-      { key: 'helm',   icon: 'рџЄ–', name: 'РЁР»РµРј',   stat: 'defense',   bonus: 0.5 },
-      { key: 'sword',  icon: 'вљ”пёЏ', name: 'РњРµС‡',    stat: 'damage',    bonus: 0.15 },
-      { key: 'armor',  icon: 'рџ›ЎпёЏ', name: 'Р‘СЂРѕРЅСЏ',  stat: 'defense',   bonus: 0.8 },
-      { key: 'gloves', icon: 'рџ§¤', name: 'РџРµСЂС‡Р°С‚РєРё', stat: 'attackSpeed', bonus: 0.1 },
-      { key: 'boots',  icon: 'рџ‘ў', name: 'РЎР°РїРѕРіРё', stat: 'moveSpeed',  bonus: 0.1 }
-    ];
-
-    // РЎР»СѓС‡Р°Р№РЅС‹Р№ СЃР»РѕС‚
-    const slot = SLOTS[Phaser.Math.Between(0, SLOTS.length - 1)];
-    this.player.gear[slot.key] = (this.player.gear[slot.key] || 0) + 1;
-    const enchLevel = this.player.gear[slot.key];
-
-    // РџСЂРёРјРµРЅСЏРµРј Р±РѕРЅСѓСЃ
-    if (slot.stat === 'attackSpeed') {
-      this.player.stats.attackSpeed = Math.max(0.3, this.player.stats.attackSpeed - slot.bonus);
-    } else if (slot.stat === 'damage') {
-      this.player.stats.damage += slot.bonus;
-    } else if (slot.stat === 'defense') {
-      this.player.stats.defense += slot.bonus;
-    } else if (slot.stat === 'moveSpeed') {
-      this.player.stats.moveSpeed += slot.bonus;
-    }
-
-    this.updateGearHUD();
-
-    // РџРѕРєР°Р·С‹РІР°РµРј СѓРІРµРґРѕРјР»РµРЅРёРµ
-    const cx = this.cameras.main.width / 2;
-    const notif = this.add.text(cx, 130, slot.icon + ' ' + slot.name + ' +' + enchLevel + ' вњЁ', {
-      fontSize: '20px', fill: '#ffdd44', fontFamily: 'monospace',
-      stroke: '#000', strokeThickness: 3,
-      backgroundColor: '#1a2a3a', padding: { x: 12, y: 6 }
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(25);
-
-    this.tweens.add({
-      targets: notif, alpha: 0, y: 100, duration: 2500, delay: 1000,
-      onComplete: () => notif.destroy()
-    });
-  }
-
-  updateGearHUD() {
-    if (!this.gearHudItems) return;
-    const SLOTS_ORDER = ['helm', 'sword', 'armor', 'gloves', 'boots'];
-    const LABELS = ['РЁР›Рњ', 'РњР•Р§', 'Р‘Р Рќ', 'РџР§Рў', 'РЎРџР“'];
-    SLOTS_ORDER.forEach((key, i) => {
-      const level = this.player.gear[key] || 0;
-      const text = level > 0 ? LABELS[i] + '\n+' + level : LABELS[i];
-      this.gearHudItems[i].setText(text);
-      this.gearHudItems[i].setStyle({ fill: level > 0 ? '#ffdd44' : '#666666' });
-    });
-  }
-
-  createHUD() {
-    const W = this.scale.width;
-    const H = this.scale.height;
-    const pad = 16;
-    const fs = Math.round(Math.min(W, H) * 0.038); // Р°РґР°РїС‚РёРІРЅС‹Р№ С€СЂРёС„С‚
-    const lh = fs + 6;
-    const barW = Math.round(W * 0.4);
-    const barH = 10;
-
-    // Р’РµСЂС…РЅРёР№ HUD
-    const s = { fontSize: fs + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000000', strokeThickness: 3 };
-    let y = pad;
-    this.hudKills = this.add.text(pad, y, 'x 0', s).setScrollFactor(0).setDepth(20); y += lh;
-    this.hudHP    = this.add.text(pad, y, 'в™Ґ 100', s).setScrollFactor(0).setDepth(20); y += lh;
-    this.hudWave  = this.add.text(pad, y, '~ Р’РѕР»РЅР° 1', s).setScrollFactor(0).setDepth(20); y += lh + 2;
-
-    // HP Р±Р°СЂ
-    this._hudPad = pad; this._hudBarY = y; this._hudBarW = barW; this._hudBarH = barH;
-    this.hpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
-    this.drawHPBar(100);
-    y += barH + 4;
-
-    // РЈСЂРѕРІРµРЅСЊ + XP
-    const fsS = Math.round(fs * 0.78);
-    this.hudLevel = this.add.text(pad, y, 'LVL 1', {
-      fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000000', strokeThickness: 2
-    }).setScrollFactor(0).setDepth(20);
-    y += fsS + 2;
-
-    this._hudXpY = y; this._hudXpBarW = barW;
-    this.xpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.xpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
-    this.drawXPBar(0, 50);
-
-    // Р­РєРёРїРёСЂРѕРІРєР° СЃРЅРёР·Сѓ вЂ” РєРѕРјРїР°РєС‚РЅРѕ, Р±РµР· СЌРјРѕРґР·Рё-С€СЂРёС„С‚РѕРІ
-    // РСЃРїРѕР»СЊР·СѓРµРј РєРѕСЂРѕС‚РєРёРµ С‚РµРєСЃС‚РѕРІС‹Рµ РјРµС‚РєРё
-    const GEAR_LABELS = ['РЁР›Рњ', 'РњР•Р§', 'Р‘Р Рќ', 'РџР§Рў', 'РЎРџР“'];
-    const gearFs = Math.round(Math.min(W, H) * 0.028);
-    const slotW = Math.round((W - pad * 2) / 5);
-    const gearY = H - pad - gearFs - 4;
-    const gearBgY = gearY - 4;
-    const totalGearW = slotW * 5;
-
-    // Р¤РѕРЅ РїРѕР»РѕСЃС‹ СЌРєРёРїРёСЂРѕРІРєРё
-    const gearBg = this.add.graphics().setScrollFactor(0).setDepth(19);
-    gearBg.fillStyle(0x000000, 0.5);
-    gearBg.fillRect(pad - 4, gearBgY - 2, totalGearW + 8, gearFs + 12);
-
-    this.gearHudItems = [];
-    for (let i = 0; i < 5; i++) {
-      const t = this.add.text(pad + i * slotW + slotW / 2, gearY, GEAR_LABELS[i], {
-        fontSize: gearFs + 'px', fill: '#666666', fontFamily: 'Arial',
-        stroke: '#000', strokeThickness: 2
-      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
-      this.gearHudItems.push(t);
-    }
-    this._slotW = slotW; this._gearPad = pad; this._gearFs = gearFs;
-  }
-
-  drawHPBar(hp) {
-    const pad = this._hudPad || 16;
-    const y = this._hudBarY || 86;
-    const w = this._hudBarW || 150;
-    const h = this._hudBarH || 10;
-    this.hpBarBg.clear();
-    this.hpBarBg.fillStyle(0x111111, 0.9);
-    this.hpBarBg.fillRect(pad, y, w, h);
-    this.hpBarFill.clear();
-    const maxHp = (this.player && this.player.stats) ? this.player.stats.maxHp : 100;
-    const pct = Math.max(0, hp / maxHp);
-    const color = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff3333;
-    this.hpBarFill.fillStyle(color);
-    this.hpBarFill.fillRect(pad + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
-  }
-
-  drawXPBar(xp, xpToNext) {
-    const pad = this._hudPad || 16;
-    const y = this._hudXpY || 116;
-    const w = this._hudXpBarW || 150;
-    const h = 8;
-    this.xpBarBg.clear();
-    this.xpBarBg.fillStyle(0x111111, 0.9);
-    this.xpBarBg.fillRect(pad, y, w, h);
-    this.xpBarFill.clear();
-    const pct = Math.min(xp / xpToNext, 1);
-    this.xpBarFill.fillStyle(0xffdd00, 1);
-    this.xpBarFill.fillRect(pad + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
-  }
+  // ---- XP / LEVELUP ----
 
   addXP(amount) {
     this.player.xp += amount;
@@ -551,64 +289,69 @@ class GameScene extends Phaser.Scene {
 
   showLevelUpCards() {
     this.paused = true;
+    const W = this.scale.width;
+    const H = this.scale.height;
+    const fs = Math.round(Math.min(W, H) * 0.04);
+    const fsS = Math.round(fs * 0.8);
 
     const allOptions = [
-      { name: 'РЎРёР»Р°', desc: '+20% СѓСЂРѕРЅ', apply: () => { this.player.stats.damage *= 1.2; } },
-      { name: 'РЎРєРѕСЂ. Р°С‚Р°РєРё', desc: '-15% РёРЅС‚РµСЂРІР°Р»', apply: () => { this.player.stats.attackSpeed *= 0.85; } },
-      { name: 'Р—Р°С‰РёС‚Р°', desc: '+1 Р·Р°С‰РёС‚Р°', apply: () => { this.player.stats.defense += 1; } },
-      { name: 'Р—РґРѕСЂРѕРІСЊРµ', desc: '+25 РјР°РєСЃ HP', apply: () => {
+      { name: 'POWER',  desc: '+20% damage',  apply: () => { this.player.stats.damage *= 1.2; } },
+      { name: 'SPEED',  desc: '-15% atk cd',  apply: () => { this.player.stats.attackSpeed *= 0.85; } },
+      { name: 'ARMOR',  desc: '-15% dmg taken', apply: () => { this.player.stats.defense += 1; } },
+      { name: 'HEALTH', desc: '+25 max HP',   apply: () => {
         this.player.stats.maxHp += 25;
         this.player.hp = Math.min(this.player.hp + 25, this.player.stats.maxHp);
-        this.hudHP.setText('вќ¤пёЏ ' + Math.floor(this.player.hp));
+        this.hudHP.setText('HP: ' + Math.floor(this.player.hp));
         this.drawHPBar(this.player.hp);
       }},
-      { name: 'РЎРєРѕСЂРѕСЃС‚СЊ', desc: '+15% РґРІРёР¶РµРЅРёРµ', apply: () => { this.player.stats.moveSpeed *= 1.15; } }
+      { name: 'MOVE',   desc: '+15% speed',   apply: () => { this.player.stats.moveSpeed *= 1.15; } }
     ];
 
     const chosen = Phaser.Utils.Array.Shuffle(allOptions.slice()).slice(0, 3);
-    const cx = this.cameras.main.width / 2;
-    const cy = this.cameras.main.height / 2;
-    const cardW = 150, cardH = 90, gap = 18;
+    const cx = W / 2;
+    const cy = H / 2;
+    const cardW = Math.round(W * 0.26);
+    const cardH = Math.round(H * 0.18);
+    const gap = Math.round(W * 0.03);
     const totalW = 3 * cardW + 2 * gap;
     const startX = cx - totalW / 2;
+    const cardY = cy - cardH / 2;
 
     const overlay = this.add.graphics().setScrollFactor(0).setDepth(38);
-    overlay.fillStyle(0x000000, 0.65);
-    overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+    overlay.fillStyle(0x000000, 0.7);
+    overlay.fillRect(0, 0, W, H);
 
-    const title = this.add.text(cx, cy - 90, 'в­ђ РЈР РћР’Р•РќР¬ ' + this.player.level + '!', {
-      fontSize: '22px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3
+    const title = this.add.text(cx, cy - cardH / 2 - Math.round(H * 0.08), 'LEVEL ' + this.player.level + '!', {
+      fontSize: fs * 1.3 + 'px', fill: '#ffdd44', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 4
     }).setOrigin(0.5).setScrollFactor(0).setDepth(39);
 
-    const subtitle = this.add.text(cx, cy - 62, 'Р’С‹Р±РµСЂРё СѓР»СѓС‡С€РµРЅРёРµ:', {
-      fontSize: '15px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2
+    const sub = this.add.text(cx, cy - cardH / 2 - Math.round(H * 0.03), 'Choose upgrade:', {
+      fontSize: fsS + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(39);
 
-    const allObjs = [overlay, title, subtitle];
+    const allObjs = [overlay, title, sub];
 
     chosen.forEach((card, i) => {
       const x = startX + i * (cardW + gap);
-      const y = cy - cardH / 2;
-
       const bg = this.add.graphics().setScrollFactor(0).setDepth(39);
       const drawCard = (hover) => {
         bg.clear();
         bg.fillStyle(hover ? 0x2a4a6a : 0x1a2a3a, 0.95);
-        bg.fillRoundedRect(x, y, cardW, cardH, 8);
+        bg.fillRoundedRect(x, cardY, cardW, cardH, 8);
         bg.lineStyle(2, hover ? 0x88bbff : 0x4488ff, 1);
-        bg.strokeRoundedRect(x, y, cardW, cardH, 8);
+        bg.strokeRoundedRect(x, cardY, cardW, cardH, 8);
       };
       drawCard(false);
 
-      const nameText = this.add.text(x + cardW / 2, y + 22, card.name, {
-        fontSize: '14px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2
+      const nameText = this.add.text(x + cardW / 2, cardY + cardH * 0.32, card.name, {
+        fontSize: fs + 'px', fill: '#ffdd44', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
       }).setOrigin(0.5).setScrollFactor(0).setDepth(40);
 
-      const descText = this.add.text(x + cardW / 2, y + 55, card.desc, {
-        fontSize: '13px', fill: '#aaddff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2
+      const descText = this.add.text(x + cardW / 2, cardY + cardH * 0.68, card.desc, {
+        fontSize: fsS + 'px', fill: '#aaddff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
       }).setOrigin(0.5).setScrollFactor(0).setDepth(40);
 
-      const zone = this.add.zone(x, y, cardW, cardH).setScrollFactor(0).setDepth(41).setOrigin(0).setInteractive();
+      const zone = this.add.zone(x, cardY, cardW, cardH).setScrollFactor(0).setDepth(41).setOrigin(0).setInteractive();
       zone.on('pointerover', () => drawCard(true));
       zone.on('pointerout', () => drawCard(false));
       zone.on('pointerdown', () => {
@@ -616,10 +359,185 @@ class GameScene extends Phaser.Scene {
         allObjs.forEach(o => o.destroy());
         this.paused = false;
       });
-
       allObjs.push(bg, nameText, descText, zone);
     });
   }
+
+  // ---- GEAR ----
+
+  showEnchantCard() {
+    const SLOTS = [
+      { key: 'helm',   name: 'HELM',   stat: 'defense',    bonus: 0.5 },
+      { key: 'sword',  name: 'SWORD',  stat: 'damage',     bonus: 0.15 },
+      { key: 'armor',  name: 'ARMOR',  stat: 'defense',    bonus: 0.8 },
+      { key: 'gloves', name: 'GLOVES', stat: 'attackSpeed',bonus: 0.1 },
+      { key: 'boots',  name: 'BOOTS',  stat: 'moveSpeed',  bonus: 0.1 }
+    ];
+    const slot = SLOTS[Phaser.Math.Between(0, SLOTS.length - 1)];
+    this.player.gear[slot.key] = (this.player.gear[slot.key] || 0) + 1;
+    const enchLevel = this.player.gear[slot.key];
+
+    if (slot.stat === 'attackSpeed') {
+      this.player.stats.attackSpeed = Math.max(0.3, this.player.stats.attackSpeed - slot.bonus);
+    } else if (slot.stat === 'damage') {
+      this.player.stats.damage += slot.bonus;
+    } else if (slot.stat === 'defense') {
+      this.player.stats.defense += slot.bonus;
+    } else if (slot.stat === 'moveSpeed') {
+      this.player.stats.moveSpeed += slot.bonus;
+    }
+    this.updateGearHUD();
+
+    const cx = this.scale.width / 2;
+    const fs = Math.round(Math.min(this.scale.width, this.scale.height) * 0.04);
+    const notif = this.add.text(cx, this.scale.height * 0.25, slot.name + ' +' + enchLevel + ' !', {
+      fontSize: fs + 'px', fill: '#ffdd44', fontFamily: 'Arial Black',
+      stroke: '#000', strokeThickness: 3,
+      backgroundColor: '#1a2a3a', padding: { x: 14, y: 8 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(25);
+    this.tweens.add({ targets: notif, alpha: 0, y: notif.y - 40, duration: 2500, delay: 1000, onComplete: () => notif.destroy() });
+  }
+
+  updateGearHUD() {
+    if (!this.gearHudItems) return;
+    const KEYS = ['helm', 'sword', 'armor', 'gloves', 'boots'];
+    const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
+    KEYS.forEach((key, i) => {
+      const level = this.player.gear[key] || 0;
+      this.gearHudItems[i].setText(LABELS[i] + (level > 0 ? '\n+' + level : ''));
+      this.gearHudItems[i].setStyle({ fill: level > 0 ? '#ffdd44' : '#555555' });
+    });
+  }
+
+  // ---- HUD ----
+
+  createHUD() {
+    const W = this.scale.width;
+    const H = this.scale.height;
+    const pad = Math.round(W * 0.04);
+    const fs = Math.round(Math.min(W, H) * 0.038);
+    const lh = Math.round(fs * 1.5);
+    const barW = Math.round(W * 0.4);
+    const barH = Math.round(H * 0.014);
+    const fsS = Math.round(fs * 0.75);
+
+    const s = { fontSize: fs + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000000', strokeThickness: 3 };
+
+    let curY = pad;
+    this.hudKills = this.add.text(pad, curY, 'kills: 0', s).setScrollFactor(0).setDepth(20); curY += lh;
+    this.hudHP    = this.add.text(pad, curY, 'HP: 100', s).setScrollFactor(0).setDepth(20); curY += lh;
+    this.hudWave  = this.add.text(pad, curY, 'Wave 1', s).setScrollFactor(0).setDepth(20); curY += lh + 2;
+
+    this._hudPad = pad; this._hudBarY = curY; this._hudBarW = barW; this._hudBarH = barH;
+    this.hpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
+    this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
+    this.drawHPBar(100);
+    curY += barH + 6;
+
+    this.hudLevel = this.add.text(pad, curY, 'LVL 1', {
+      fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
+    }).setScrollFactor(0).setDepth(20);
+    curY += fsS + 4;
+
+    this._hudXpY = curY; this._hudXpBarW = barW; this._hudXpBarH = Math.round(barH * 0.7);
+    this.xpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
+    this.xpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
+    this.drawXPBar(0, BASE_XP_PER_LEVEL);
+
+    // Gear — bottom strip
+    const gearFs = Math.round(Math.min(W, H) * 0.028);
+    const slotW = Math.round((W - pad * 2) / 5);
+    const gearY = H - pad - Math.round(gearFs * 1.8);
+
+    const gearBg = this.add.graphics().setScrollFactor(0).setDepth(19);
+    gearBg.fillStyle(0x000000, 0.55);
+    gearBg.fillRect(pad - 4, gearY - 4, slotW * 5 + 8, Math.round(gearFs * 2) + 8);
+
+    this.gearHudItems = [];
+    const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
+    for (let i = 0; i < 5; i++) {
+      const t = this.add.text(pad + i * slotW + Math.round(slotW / 2), gearY, LABELS[i], {
+        fontSize: gearFs + 'px', fill: '#555555', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2, align: 'center'
+      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
+      this.gearHudItems.push(t);
+    }
+
+    this._gearFs = gearFs; this._gearY = gearY; this._gearSlotW = slotW; this._gearPad = pad;
+  }
+
+  drawHPBar(hp) {
+    const pad = this._hudPad || 16;
+    const y = this._hudBarY || 80;
+    const w = this._hudBarW || 150;
+    const h = this._hudBarH || 10;
+    this.hpBarBg.clear();
+    this.hpBarBg.fillStyle(0x111111, 0.9);
+    this.hpBarBg.fillRect(pad, y, w, h);
+    this.hpBarFill.clear();
+    const maxHp = (this.player && this.player.stats) ? this.player.stats.maxHp : 100;
+    const pct = Math.max(0, Math.min(1, hp / maxHp));
+    const color = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff3333;
+    this.hpBarFill.fillStyle(color);
+    this.hpBarFill.fillRect(pad + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
+  }
+
+  drawXPBar(xp, xpToNext) {
+    const pad = this._hudPad || 16;
+    const y = this._hudXpY || 120;
+    const w = this._hudXpBarW || 150;
+    const h = this._hudXpBarH || 7;
+    this.xpBarBg.clear();
+    this.xpBarBg.fillStyle(0x111111, 0.9);
+    this.xpBarBg.fillRect(pad, y, w, h);
+    this.xpBarFill.clear();
+    const pct = Math.min(1, xp / xpToNext);
+    this.xpBarFill.fillStyle(0xffdd00);
+    this.xpBarFill.fillRect(pad + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
+  }
+
+  // ---- BOSS HP BAR ----
+
+  createBossHPBar() {
+    if (this.bossHpBg) { this.bossHpBg.destroy(); this.bossHpFill.destroy(); this.bossHpLabel.destroy(); }
+    const W = this.scale.width;
+    const H = this.scale.height;
+    const bw = Math.round(W * 0.6);
+    const cx = W / 2;
+    const gearAreaH = this._gearFs ? Math.round(this._gearFs * 2) + 16 : 50;
+    const bossBarY = H - gearAreaH - Math.round(H * 0.06);
+    const fs = Math.round(Math.min(W, H) * 0.03);
+
+    this.bossHpLabel = this.add.text(cx, bossBarY - fs - 2, 'BOSS', {
+      fontSize: fs + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(22);
+
+    this._bossBarX = cx - bw / 2;
+    this._bossBarY = bossBarY;
+    this._bossBarW = bw;
+    this._bossBarH = Math.round(H * 0.02);
+    this.bossHpBg = this.add.graphics().setScrollFactor(0).setDepth(22);
+    this.bossHpFill = this.add.graphics().setScrollFactor(0).setDepth(23);
+    this.drawBossHPBar(1);
+  }
+
+  drawBossHPBar(pct) {
+    if (!this.bossHpBg) return;
+    const x = this._bossBarX, y = this._bossBarY, w = this._bossBarW, h = this._bossBarH || 14;
+    this.bossHpBg.clear();
+    this.bossHpBg.fillStyle(0x222222, 0.9);
+    this.bossHpBg.fillRect(x, y, w, h);
+    this.bossHpFill.clear();
+    this.bossHpFill.fillStyle(0xff2222);
+    this.bossHpFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * Math.max(0, pct)), h - 2);
+  }
+
+  destroyBossHPBar() {
+    if (this.bossHpBg) { this.bossHpBg.destroy(); this.bossHpBg = null; }
+    if (this.bossHpFill) { this.bossHpFill.destroy(); this.bossHpFill = null; }
+    if (this.bossHpLabel) { this.bossHpLabel.destroy(); this.bossHpLabel = null; }
+  }
+
+  // ---- JOYSTICK ----
 
   onPointerDown(p) {
     if (!this.joystick.active) {
@@ -661,56 +579,63 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  // ---- GAME OVER ----
+
   showGameOver() {
     this.gameOver = true;
-    const cx = this.cameras.main.width / 2;
-    const cy = this.cameras.main.height / 2;
+    const W = this.scale.width;
+    const H = this.scale.height;
+    const cx = W / 2;
+    const cy = H / 2;
+    const fs = Math.round(Math.min(W, H) * 0.06);
+    const fsS = Math.round(fs * 0.6);
 
     const bg = this.add.graphics().setScrollFactor(0).setDepth(30);
-    bg.fillStyle(0x000000, 0.75);
-    bg.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+    bg.fillStyle(0x000000, 0.8);
+    bg.fillRect(0, 0, W, H);
 
-    this.add.text(cx, cy - 70, 'GAME OVER', {
-      fontSize: '42px', fill: '#ff4444', fontFamily: 'monospace', stroke: '#000', strokeThickness: 4
+    this.add.text(cx, cy - fs * 2, 'GAME OVER', {
+      fontSize: fs * 1.2 + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 4
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
 
-    this.add.text(cx, cy - 20, 'вљ”пёЏ РЈР±РёС‚Рѕ: ' + this.killCount, {
-      fontSize: '22px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3
+    this.add.text(cx, cy - fs * 0.5, 'Kills: ' + this.killCount, {
+      fontSize: fsS + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
 
-    this.add.text(cx, cy + 15, 'рџЊЉ Р’РѕР»РЅР°: ' + this.waveNum, {
-      fontSize: '22px', fill: '#88ddff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3
+    this.add.text(cx, cy + fsS * 0.3, 'Wave: ' + this.waveNum, {
+      fontSize: fsS + 'px', fill: '#88ddff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
 
-    this.add.text(cx, cy + 45, 'в­ђ РЈСЂРѕРІРµРЅСЊ: ' + this.player.level, {
-      fontSize: '22px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3
+    this.add.text(cx, cy + fsS * 1.1, 'Level: ' + this.player.level, {
+      fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
 
-    // Р­РєРёРїРёСЂРѕРІРєР° РІ Game Over
-    const gear = this.player.gear;
-    const gearStr = ['рџЄ–', 'вљ”пёЏ', 'рџ›ЎпёЏ', 'рџ§¤', 'рџ‘ў'].map((icon, i) => {
-      const keys = ['helm','sword','armor','gloves','boots'];
-      const lvl = gear[keys[i]] || 0;
-      return lvl > 0 ? icon + '+' + lvl : icon;
+    const KEYS = ['helm', 'sword', 'armor', 'gloves', 'boots'];
+    const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
+    const gearStr = KEYS.map((k, i) => {
+      const lvl = this.player.gear[k] || 0;
+      return LABELS[i] + (lvl > 0 ? '+' + lvl : '');
     }).join('  ');
-    this.add.text(cx, cy + 75, gearStr, {
-      fontSize: '20px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2
+    this.add.text(cx, cy + fsS * 2, gearStr, {
+      fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
 
-    const btn = this.add.text(cx, cy + 115, '[ РќРђР§РђРўР¬ Р—РђРќРћР’Рћ ]', {
-      fontSize: '22px', fill: '#44ff88', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3,
-      backgroundColor: '#1a3a1a', padding: { x: 16, y: 8 }
+    const btn = this.add.text(cx, cy + fsS * 3.2, '[ RESTART ]', {
+      fontSize: fsS + 'px', fill: '#44ff88', fontFamily: 'Arial Black',
+      stroke: '#000', strokeThickness: 3,
+      backgroundColor: '#1a3a1a', padding: { x: 16, y: 10 }
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31).setInteractive();
     btn.on('pointerover', () => btn.setStyle({ fill: '#88ffaa' }));
     btn.on('pointerout', () => btn.setStyle({ fill: '#44ff88' }));
     btn.on('pointerdown', () => this.scene.restart());
   }
 
+  // ---- UPDATE ----
+
   update(time, delta) {
     if (this.gameOver || this.paused) return;
     const dt = delta / 1000;
 
-    // Р”РІРёР¶РµРЅРёРµ РёРіСЂРѕРєР°
     let vx = 0, vy = 0;
     if (this.cursors.left.isDown || this.wasd.left.isDown) vx = -1;
     else if (this.cursors.right.isDown || this.wasd.right.isDown) vx = 1;
@@ -718,19 +643,18 @@ class GameScene extends Phaser.Scene {
     else if (this.cursors.down.isDown || this.wasd.down.isDown) vy = 1;
     if (this.joystick.active) { vx = this.joystick.dx; vy = this.joystick.dy; }
     if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
+
     const speed = PLAYER_SPEED * this.player.stats.moveSpeed;
     this.player.x = Phaser.Math.Clamp(this.player.x + vx * speed * dt, 16, ARENA_W - 16);
     this.player.y = Phaser.Math.Clamp(this.player.y + vy * speed * dt, 16, ARENA_H - 16);
 
-    // РџСЂРѕРІРµСЂСЏРµРј РєРѕРЅРµС† РІРѕР»РЅС‹ СЃРїР°РІРЅР° вЂ” РїРµСЂРµС…РѕРґРёРј Рє Р±РѕСЃСЃСѓ
     if (this.waveState === 'spawning' &&
         this.popSpawned >= this.popToSpawn &&
-        this.pops.getChildren().filter(p => p.alive).length === 0) {
+        this.pops.getChildren().filter(p => p.alive && !p.isBossMinion).length === 0) {
       this.waveState = 'boss';
       this.time.delayedCall(1000, () => { if (!this.gameOver) this.spawnBoss(); });
     }
 
-    // Р”РІРёР¶РµРЅРёРµ РџРѕРїРѕСЂРёРЅРіРѕРІ
     for (const pop of this.pops.getChildren()) {
       if (!pop.alive) continue;
       const dx = this.player.x - pop.x;
@@ -745,7 +669,7 @@ class GameScene extends Phaser.Scene {
           this.player.lastDamageTime.set(pop, time);
           const dmg = POP_DAMAGE * Math.max(0.1, 1 - this.player.stats.defense * 0.15);
           this.player.hp = Math.max(0, this.player.hp - dmg);
-          this.hudHP.setText('вќ¤пёЏ ' + Math.floor(this.player.hp));
+          this.hudHP.setText('HP: ' + Math.floor(this.player.hp));
           this.drawHPBar(this.player.hp);
           this.tweens.add({ targets: this.player, alpha: 0.3, duration: 100, yoyo: true });
           if (this.player.hp <= 0) { this.showGameOver(); return; }
@@ -753,28 +677,25 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    // Р”РІРёР¶РµРЅРёРµ Р±РѕСЃСЃР°
     if (this.boss && this.boss.alive) {
       const dx = this.player.x - this.boss.x;
       const dy = this.player.y - this.boss.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const bossSpeed = 50;
       if (dist > 48) {
-        this.boss.x += (dx / dist) * bossSpeed * dt;
-        this.boss.y += (dy / dist) * bossSpeed * dt;
+        this.boss.x += (dx / dist) * 50 * dt;
+        this.boss.y += (dy / dist) * 50 * dt;
       } else {
         const lastHit = this.player.lastDamageTime.get(this.boss) || 0;
         if (time - lastHit > 800) {
           this.player.lastDamageTime.set(this.boss, time);
-          this.player.hp = Math.max(0, this.player.hp - 20);
-          this.hudHP.setText('вќ¤пёЏ ' + this.player.hp);
+          const dmg = 20 * Math.max(0.1, 1 - this.player.stats.defense * 0.15);
+          this.player.hp = Math.max(0, this.player.hp - dmg);
+          this.hudHP.setText('HP: ' + Math.floor(this.player.hp));
           this.drawHPBar(this.player.hp);
           this.tweens.add({ targets: this.player, alpha: 0.2, duration: 150, yoyo: true });
           if (this.player.hp <= 0) { this.showGameOver(); return; }
         }
       }
-
-      // РњРёРЅСЊРѕРЅС‹ РІСЂР°С‰Р°СЋС‚СЃСЏ РІРѕРєСЂСѓРі Р±РѕСЃСЃР°
       const aliveMinions = this.bossMinions.filter(m => m.alive);
       aliveMinions.forEach((m, i) => {
         const angle = (i / aliveMinions.length) * Math.PI * 2 + time * 0.001;
@@ -791,9 +712,7 @@ const config = {
   scene: GameScene,
   scale: {
     mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: '100%',
-    height: '100%'
+    autoCenter: Phaser.Scale.CENTER_BOTH
   }
 };
 
@@ -801,5 +720,3 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
-
-
