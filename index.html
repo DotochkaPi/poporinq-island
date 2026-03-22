@@ -18,9 +18,24 @@ const ARENA_H = 1200;
 const PLAYER_SPEED = 200;
 const POP_SPEED = 80;
 const ATTACK_RADIUS = 60;
+const XP_PER_POP = 10;
+const XP_PER_BOSS = 100;
+const BASE_XP_PER_LEVEL = 50;
+
+const UPGRADES = [
+  { key: 'damage',      icon: '⚔️',  name: 'Сила',           desc: '+20% урон',             apply: (p) => { p.stats.damage *= 1.2; } },
+  { key: 'attackSpeed', icon: '⚡',  name: 'Скорость атаки', desc: '-15% интервал атаки',   apply: (p) => { p.stats.attackSpeed *= 0.85; } },
+  { key: 'defense',     icon: '🛡️', name: 'Защита',          desc: '-15% урон от врагов',   apply: (p) => { p.stats.defense += 1; } },
+  { key: 'hp',          icon: '❤️',  name: 'Здоровье',        desc: '+25 макс HP и +25 HP',  apply: (p, scene) => { p.stats.maxHp += 25; p.hp = Math.min(p.hp + 25, p.stats.maxHp); } },
+  { key: 'moveSpeed',   icon: '👟',  name: 'Скорость',        desc: '+15% скорость движения', apply: (p) => { p.stats.moveSpeed *= 1.15; } }
+];
 const ATTACK_INTERVAL = 1500;
 const POP_DAMAGE = 10;
 const POP_DAMAGE_COOLDOWN = 1000;
+
+const XP_PER_POP = 10;
+const XP_PER_BOSS = 100;
+const BASE_XP_PER_LEVEL = 50;
 
 // Волны: сколько Попорингов в каждой волне
 const WAVE_COUNTS = [10, 15, 20, 25, 30];
@@ -49,6 +64,14 @@ class GameScene extends Phaser.Scene {
     this.player.setOrigin(0.5, 0.5).setDepth(5);
     this.player.hp = 100;
     this.player.lastDamageTime = new Map();
+    this.player.level = 1;
+    this.player.xp = 0;
+    this.player.xpToNext = BASE_XP_PER_LEVEL;
+    this.player.stats = { damage: 1.0, attackSpeed: 1.0, defense: 0, maxHp: 100, moveSpeed: 1.0 };
+    this.player.level = 1;
+    this.player.xp = 0;
+    this.player.xpToNext = 50;
+    this.player.stats = { damage: 1.0, attackSpeed: 1.0, defense: 0, maxHp: 100, moveSpeed: 1.0 };
 
     // Камера
     this.cameras.main.setBounds(0, 0, ARENA_W, ARENA_H);
@@ -282,7 +305,7 @@ class GameScene extends Phaser.Scene {
     if (this.boss && this.boss.alive) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
       if (d < ATTACK_RADIUS + 32) {
-        this.boss.hp -= 20;
+        this.boss.hp -= 20 * this.player.stats.damage;
         this.drawBossHPBar(this.boss.hp / this.boss.maxHp);
         // Флэш босса
         this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
@@ -319,6 +342,7 @@ class GameScene extends Phaser.Scene {
     pop.alive = false;
     this.killCount++;
     this.hudKills.setText('⚔️ ' + this.killCount);
+    this.addXP(XP_PER_POP);
     this.tweens.add({
       targets: pop, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
       onComplete: () => {
@@ -342,6 +366,7 @@ class GameScene extends Phaser.Scene {
       onComplete: () => { this.boss.destroy(); this.boss = null; }
     });
 
+    this.addXP(XP_PER_BOSS);
     this.showWaveAnnounce('🏆 БОСС ПОВЕРЖЕН!');
 
     // Пауза перед следующей волной
@@ -360,6 +385,14 @@ class GameScene extends Phaser.Scene {
     this.hpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
     this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawHPBar(100);
+
+    this.hudLevel = this.add.text(16, 114, 'LVL 1', {
+      fontSize: '14px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
+    }).setScrollFactor(0).setDepth(20);
+
+    this.xpBarBg = this.add.graphics().setScrollFactor(0).setDepth(20);
+    this.xpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
+    this.drawXPBar(0, 50);
   }
 
   drawHPBar(hp) {
@@ -367,10 +400,109 @@ class GameScene extends Phaser.Scene {
     this.hpBarBg.fillStyle(0x333333, 0.8);
     this.hpBarBg.fillRect(14, 96, 154, 14);
     this.hpBarFill.clear();
-    const pct = hp / 100;
+    const maxHp = (this.player && this.player.stats) ? this.player.stats.maxHp : 100;
+    const pct = hp / maxHp;
     const color = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff3333;
     this.hpBarFill.fillStyle(color);
     this.hpBarFill.fillRect(16, 98, 150 * pct, 10);
+  }
+
+  drawXPBar(xp, xpToNext) {
+    this.xpBarBg.clear();
+    this.xpBarBg.fillStyle(0x333333, 0.8);
+    this.xpBarBg.fillRect(40, 116, 128, 10);
+    this.xpBarFill.clear();
+    const pct = Math.min(xp / xpToNext, 1);
+    this.xpBarFill.fillStyle(0xffdd00, 1);
+    this.xpBarFill.fillRect(42, 118, 124 * pct, 6);
+  }
+
+  addXP(amount) {
+    this.player.xp += amount;
+    while (this.player.xp >= this.player.xpToNext) {
+      this.player.xp -= this.player.xpToNext;
+      this.levelUp();
+    }
+    this.drawXPBar(this.player.xp, this.player.xpToNext);
+  }
+
+  levelUp() {
+    this.player.level++;
+    this.player.xpToNext = BASE_XP_PER_LEVEL * this.player.level;
+    this.hudLevel.setText('LVL ' + this.player.level);
+    this.showLevelUpCards();
+  }
+
+  showLevelUpCards() {
+    this.paused = true;
+
+    const allOptions = [
+      { name: 'Сила', desc: '+20% урон', apply: () => { this.player.stats.damage *= 1.2; } },
+      { name: 'Скор. атаки', desc: '-15% интервал', apply: () => { this.player.stats.attackSpeed *= 0.85; } },
+      { name: 'Защита', desc: '+1 защита', apply: () => { this.player.stats.defense += 1; } },
+      { name: 'Здоровье', desc: '+25 макс HP', apply: () => {
+        this.player.stats.maxHp += 25;
+        this.player.hp = Math.min(this.player.hp + 25, this.player.stats.maxHp);
+        this.hudHP.setText('❤️ ' + Math.floor(this.player.hp));
+        this.drawHPBar(this.player.hp);
+      }},
+      { name: 'Скорость', desc: '+15% движение', apply: () => { this.player.stats.moveSpeed *= 1.15; } }
+    ];
+
+    const chosen = Phaser.Utils.Array.Shuffle(allOptions.slice()).slice(0, 3);
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+    const cardW = 150, cardH = 90, gap = 18;
+    const totalW = 3 * cardW + 2 * gap;
+    const startX = cx - totalW / 2;
+
+    const overlay = this.add.graphics().setScrollFactor(0).setDepth(38);
+    overlay.fillStyle(0x000000, 0.65);
+    overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+
+    const title = this.add.text(cx, cy - 90, '⭐ УРОВЕНЬ ' + this.player.level + '!', {
+      fontSize: '22px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(39);
+
+    const subtitle = this.add.text(cx, cy - 62, 'Выбери улучшение:', {
+      fontSize: '15px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(39);
+
+    const allObjs = [overlay, title, subtitle];
+
+    chosen.forEach((card, i) => {
+      const x = startX + i * (cardW + gap);
+      const y = cy - cardH / 2;
+
+      const bg = this.add.graphics().setScrollFactor(0).setDepth(39);
+      const drawCard = (hover) => {
+        bg.clear();
+        bg.fillStyle(hover ? 0x2a4a6a : 0x1a2a3a, 0.95);
+        bg.fillRoundedRect(x, y, cardW, cardH, 8);
+        bg.lineStyle(2, hover ? 0x88bbff : 0x4488ff, 1);
+        bg.strokeRoundedRect(x, y, cardW, cardH, 8);
+      };
+      drawCard(false);
+
+      const nameText = this.add.text(x + cardW / 2, y + 22, card.name, {
+        fontSize: '14px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(40);
+
+      const descText = this.add.text(x + cardW / 2, y + 55, card.desc, {
+        fontSize: '13px', fill: '#aaddff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(40);
+
+      const zone = this.add.zone(x, y, cardW, cardH).setScrollFactor(0).setDepth(41).setOrigin(0).setInteractive();
+      zone.on('pointerover', () => drawCard(true));
+      zone.on('pointerout', () => drawCard(false));
+      zone.on('pointerdown', () => {
+        card.apply();
+        allObjs.forEach(o => o.destroy());
+        this.paused = false;
+      });
+
+      allObjs.push(bg, nameText, descText, zone);
+    });
   }
 
   onPointerDown(p) {
@@ -434,7 +566,11 @@ class GameScene extends Phaser.Scene {
       fontSize: '22px', fill: '#88ddff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
 
-    const btn = this.add.text(cx, cy + 70, '[ НАЧАТЬ ЗАНОВО ]', {
+    this.add.text(cx, cy + 45, '⭐ Уровень: ' + this.player.level, {
+      fontSize: '22px', fill: '#ffdd44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
+
+    const btn = this.add.text(cx, cy + 90, '[ НАЧАТЬ ЗАНОВО ]', {
       fontSize: '22px', fill: '#44ff88', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3,
       backgroundColor: '#1a3a1a', padding: { x: 16, y: 8 }
     }).setOrigin(0.5).setScrollFactor(0).setDepth(31).setInteractive();
@@ -444,7 +580,7 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (this.gameOver) return;
+    if (this.gameOver || this.paused) return;
     const dt = delta / 1000;
 
     // Движение игрока
@@ -455,8 +591,9 @@ class GameScene extends Phaser.Scene {
     else if (this.cursors.down.isDown || this.wasd.down.isDown) vy = 1;
     if (this.joystick.active) { vx = this.joystick.dx; vy = this.joystick.dy; }
     if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
-    this.player.x = Phaser.Math.Clamp(this.player.x + vx * PLAYER_SPEED * dt, 16, ARENA_W - 16);
-    this.player.y = Phaser.Math.Clamp(this.player.y + vy * PLAYER_SPEED * dt, 16, ARENA_H - 16);
+    const speed = PLAYER_SPEED * this.player.stats.moveSpeed;
+    this.player.x = Phaser.Math.Clamp(this.player.x + vx * speed * dt, 16, ARENA_W - 16);
+    this.player.y = Phaser.Math.Clamp(this.player.y + vy * speed * dt, 16, ARENA_H - 16);
 
     // Проверяем конец волны спавна — переходим к боссу
     if (this.waveState === 'spawning' &&
@@ -479,8 +616,9 @@ class GameScene extends Phaser.Scene {
         const lastHit = this.player.lastDamageTime.get(pop) || 0;
         if (time - lastHit > POP_DAMAGE_COOLDOWN) {
           this.player.lastDamageTime.set(pop, time);
-          this.player.hp = Math.max(0, this.player.hp - POP_DAMAGE);
-          this.hudHP.setText('❤️ ' + this.player.hp);
+          const dmg = POP_DAMAGE * Math.max(0.1, 1 - this.player.stats.defense * 0.15);
+          this.player.hp = Math.max(0, this.player.hp - dmg);
+          this.hudHP.setText('❤️ ' + Math.floor(this.player.hp));
           this.drawHPBar(this.player.hp);
           this.tweens.add({ targets: this.player, alpha: 0.3, duration: 100, yoyo: true });
           if (this.player.hp <= 0) { this.showGameOver(); return; }
