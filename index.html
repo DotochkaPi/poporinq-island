@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -63,9 +63,6 @@ class GameScene extends Phaser.Scene {
     const zoom = Math.min(W0, H0) / 500;
     this.cameras.main.setZoom(zoom);
 
-    // HUD camera — no zoom, no scroll, covers full screen
-    this.hudCam = this.cameras.add(0, 0, W0, H0);
-    this.hudCam.setScroll(0, 0);
     this._zoom = zoom;
 
     this.pops = this.add.group();
@@ -148,13 +145,12 @@ class GameScene extends Phaser.Scene {
   }
 
   showAnnounce(text) {
-    const cx = W0 / 2;
-    const fs = Math.round(Math.min(W0, H0) * 0.06);
-    const t = this.add.text(cx, H0 * 0.15, text, {
+    const z = this._zoom;
+    const cx = (W0 / 2) / z;
+    const fs = Math.round(Math.min(W0, H0) * 0.06 / z);
+    const t = this.add.text(cx, (H0 * 0.15) / z, text, {
       fontSize: fs + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 4
-    }).setOrigin(0.5).setDepth(25);
-    this.cameras.main.ignore(t);
-    this.tweens.add({ targets: t, alpha: 0, y: t.y - 30, duration: 2000, delay: 1000, onComplete: () => t.destroy() });
+    }).setOrigin(0.5).setDepth(25);    this.tweens.add({ targets: t, alpha: 0, y: t.y - 30, duration: 2000, delay: 1000, onComplete: () => t.destroy() });
   }
 
   spawnPop(isBossMinion = false) {
@@ -301,7 +297,7 @@ class GameScene extends Phaser.Scene {
     this.paused = true;
     const W = W0;
     const H = H0;
-    const addHud = (obj) => { this.cameras.main.ignore(obj); return obj; };
+    
     const fs = Math.round(Math.min(W, H) * 0.04);
     const fsS = Math.round(fs * 0.8);
 
@@ -321,30 +317,30 @@ class GameScene extends Phaser.Scene {
     const chosen = Phaser.Utils.Array.Shuffle(allOptions.slice()).slice(0, 3);
     const cx = W / 2;
     const cy = H / 2;
-    const cardW = Math.round(W * 0.26);
-    const cardH = Math.round(H * 0.18);
-    const gap = Math.round(W * 0.03);
+    const cardW = Math.round(W * 0.26 / z);
+    const cardH = Math.round(H * 0.18 / z);
+    const gap = Math.round(W * 0.03 / z);
     const totalW = 3 * cardW + 2 * gap;
     const startX = cx - totalW / 2;
     const cardY = cy - cardH / 2;
 
-    const overlay = addHud(this.add.graphics().setDepth(38));
+    const overlay = this.add.graphics().setScrollFactor(0).setDepth(38));
     overlay.fillStyle(0x000000, 0.7);
     overlay.fillRect(0, 0, W, H);
 
-    const title = addHud(this.add.text(cx, cy - cardH / 2 - Math.round(H * 0.08), 'LEVEL ' + this.player.level + '!', {
+    const title = this.add.text(cx, cy - cardH / 2 - Math.round(H * 0.08), 'LEVEL ' + this.player.level + '!', {
       fontSize: fs * 1.3 + 'px', fill: '#ffdd44', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 4
-    }).setOrigin(0.5).setDepth(39));
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(39));
 
-    const sub = addHud(this.add.text(cx, cy - cardH / 2 - Math.round(H * 0.03), 'Choose upgrade:', {
+    const sub = this.add.text(cx, cy - cardH / 2 - Math.round(H * 0.03), 'Choose upgrade:', {
       fontSize: fsS + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setDepth(39));
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(39));
 
     const allObjs = [overlay, title, sub];
 
     chosen.forEach((card, i) => {
       const x = startX + i * (cardW + gap);
-      const bg = addHud(this.add.graphics().setDepth(39));
+      const bg = this.add.graphics().setDepth(39));
       const drawCard = (hover) => {
         bg.clear();
         bg.fillStyle(hover ? 0x2a4a6a : 0x1a2a3a, 0.95);
@@ -354,15 +350,15 @@ class GameScene extends Phaser.Scene {
       };
       drawCard(false);
 
-      const nameText = addHud(this.add.text(x + cardW / 2, cardY + cardH * 0.32, card.name, {
+      const nameText = this.add.text(x + cardW / 2, cardY + cardH * 0.32, card.name, {
         fontSize: fs + 'px', fill: '#ffdd44', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
-      }).setOrigin(0.5).setDepth(40));
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(40));
 
-      const descText = addHud(this.add.text(x + cardW / 2, cardY + cardH * 0.68, card.desc, {
+      const descText = this.add.text(x + cardW / 2, cardY + cardH * 0.68, card.desc, {
         fontSize: fsS + 'px', fill: '#aaddff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
-      }).setOrigin(0.5).setDepth(40));
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(40));
 
-      const zone = addHud(this.add.zone(x, cardY, cardW, cardH).setDepth(41).setOrigin(0).setInteractive());
+      const zone = this.add.zone(x, cardY, cardW, cardH).setScrollFactor(0).setDepth(41).setOrigin(0).setInteractive());
       zone.on('pointerover', () => drawCard(true));
       zone.on('pointerout', () => drawCard(false));
       zone.on('pointerdown', () => {
@@ -399,15 +395,14 @@ class GameScene extends Phaser.Scene {
     }
     this.updateGearHUD();
 
-    const cx = W0 / 2;
-    const fs = Math.round(Math.min(W0, H0) * 0.04);
-    const notif = this.add.text(cx, H0 * 0.25, slot.name + ' +' + enchLevel + ' !', {
+    const z2 = this._zoom;
+    const cx = (W0 / 2) / z2;
+    const fs = Math.round(Math.min(W0, H0) * 0.04 / z2);
+    const notif = this.add.text(cx, (H0 * 0.25) / z2, slot.name + ' +' + enchLevel + ' !', {
       fontSize: fs + 'px', fill: '#ffdd44', fontFamily: 'Arial Black',
       stroke: '#000', strokeThickness: 3,
       backgroundColor: '#1a2a3a', padding: { x: 14, y: 8 }
-    }).setOrigin(0.5).setDepth(25);
-    this.cameras.main.ignore(notif);
-    this.tweens.add({ targets: notif, alpha: 0, y: notif.y - 40, duration: 2500, delay: 1000, onComplete: () => notif.destroy() });
+    }).setOrigin(0.5).setDepth(25);    this.tweens.add({ targets: notif, alpha: 0, y: notif.y - 40, duration: 2500, delay: 1000, onComplete: () => notif.destroy() });
   }
 
   updateGearHUD() {
@@ -429,24 +424,24 @@ class GameScene extends Phaser.Scene {
     const H = H0;
     this._W = W;
     this._H = H;
+    const z = this._zoom; // divide all coords by zoom so setScrollFactor(0) shows at correct screen %
 
-    // All positions are direct screen pixels — HUD camera has no zoom
-    const PX      = W * 0.02;
-    const FS      = Math.round(Math.min(W, H) * 0.04);
+    const PX      = (W * 0.02) / z;
+    const FS      = Math.round(Math.min(W, H) * 0.04 / z);
     const FSS     = Math.round(FS * 0.75);
-    const BW      = W * 0.38;
-    const BH      = Math.max(6, H * 0.012);
-    const XPH     = Math.max(4, H * 0.008);
-    const FS_GEAR = Math.round(Math.min(W, H) * 0.030);
-    const SLOT_W  = (W * 0.96) / 5;
+    const BW      = (W * 0.38) / z;
+    const BH      = Math.max(4, (H * 0.012) / z);
+    const XPH     = Math.max(3, (H * 0.008) / z);
+    const FS_GEAR = Math.round(Math.min(W, H) * 0.030 / z);
+    const SLOT_W  = (W * 0.96) / 5 / z;
 
-    const Y_KILLS = H * 0.03;
-    const Y_HP    = H * 0.07;
-    const Y_WAVE  = H * 0.11;
-    const Y_HPBAR = H * 0.15;
-    const Y_LVL   = H * 0.19;
-    const Y_XPBAR = H * 0.22;
-    const Y_GEAR  = H * 0.92;
+    const Y_KILLS = (H * 0.03) / z;
+    const Y_HP    = (H * 0.07) / z;
+    const Y_WAVE  = (H * 0.11) / z;
+    const Y_HPBAR = (H * 0.15) / z;
+    const Y_LVL   = (H * 0.19) / z;
+    const Y_XPBAR = (H * 0.22) / z;
+    const Y_GEAR  = (H * 0.92) / z;
 
     this._hp = { x: PX, y: Y_HPBAR, w: BW, h: BH };
     this._xp = { x: PX, y: Y_XPBAR, w: BW, h: XPH };
@@ -454,37 +449,32 @@ class GameScene extends Phaser.Scene {
     const s  = { fontSize: FS  + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3 };
     const sS = { fontSize: FSS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 };
 
-    const addHud = (obj) => {
-      this.cameras.main.ignore(obj);
-      return obj;
-    };
+    this.hudKills = this.add.text(PX, Y_KILLS, 'kills: 0', s).setScrollFactor(0).setDepth(20);
+    this.hudHP    = this.add.text(PX, Y_HP,    'HP: 100',  s).setScrollFactor(0).setDepth(20);
+    this.hudWave  = this.add.text(PX, Y_WAVE,  'Wave 1',   s).setScrollFactor(0).setDepth(20);
 
-    this.hudKills = addHud(this.add.text(PX, Y_KILLS, 'kills: 0', s).setDepth(20));
-    this.hudHP    = addHud(this.add.text(PX, Y_HP,    'HP: 100',  s).setDepth(20));
-    this.hudWave  = addHud(this.add.text(PX, Y_WAVE,  'Wave 1',   s).setDepth(20));
-
-    this.hpBarBg   = addHud(this.add.graphics().setDepth(20));
-    this.hpBarFill = addHud(this.add.graphics().setDepth(21));
+    this.hpBarBg   = this.add.graphics().setScrollFactor(0).setDepth(20);
+    this.hpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawHPBar(100);
 
-    this.hudLevel = addHud(this.add.text(PX, Y_LVL, 'LVL 1', sS).setDepth(20));
+    this.hudLevel = this.add.text(PX, Y_LVL, 'LVL 1', sS).setScrollFactor(0).setDepth(20);
 
-    this.xpBarBg   = addHud(this.add.graphics().setDepth(20));
-    this.xpBarFill = addHud(this.add.graphics().setDepth(21));
+    this.xpBarBg   = this.add.graphics().setScrollFactor(0).setDepth(20);
+    this.xpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawXPBar(0, BASE_XP_PER_LEVEL);
 
-    const gearBg = addHud(this.add.graphics().setDepth(19));
+    const gearBg = this.add.graphics().setScrollFactor(0).setDepth(19);
     gearBg.fillStyle(0x000000, 0.6);
-    gearBg.fillRect(PX - 4, H * 0.90, W * 0.96 + 8, H * 0.09);
+    gearBg.fillRect(PX - 2, (H * 0.90) / z, (W * 0.96) / z + 4, (H * 0.09) / z);
 
     this.gearHudItems = [];
     const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
     for (let i = 0; i < 5; i++) {
-      const tx = PX + i * SLOT_W + SLOT_W / 2;
-      const t = addHud(this.add.text(tx, Y_GEAR, LABELS[i], {
+      const tx = (W * 0.02) / z + i * SLOT_W + SLOT_W / 2;
+      const t = this.add.text(tx, Y_GEAR, LABELS[i], {
         fontSize: FS_GEAR + 'px', fill: '#555555', fontFamily: 'Arial',
         stroke: '#000', strokeThickness: 2, align: 'center'
-      }).setOrigin(0.5, 0).setDepth(20));
+      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
       this.gearHudItems.push(t);
     }
   }
@@ -526,15 +516,15 @@ class GameScene extends Phaser.Scene {
     const lblY = H * 0.82;
     const fs   = Math.round(Math.min(W, H) * 0.030);
 
-    const addHud = (obj) => { this.cameras.main.ignore(obj); return obj; };
+    
 
-    this.bossHpLabel = addHud(this.add.text(cx, lblY, 'BOSS', {
+    this.bossHpLabel = this.add.text(cx, lblY, 'BOSS', {
       fontSize: fs + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setDepth(22));
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(22));
 
     this._boss     = { x: cx - bw / 2, y: by, w: bw, h: bh };
-    this.bossHpBg  = addHud(this.add.graphics().setDepth(22));
-    this.bossHpFill = addHud(this.add.graphics().setDepth(23));
+    this.bossHpBg  = this.add.graphics().setScrollFactor(0).setDepth(22));
+    this.bossHpFill = this.add.graphics().setScrollFactor(0).setDepth(23));
     this.drawBossHPBar(1);
   }
 
@@ -605,29 +595,29 @@ class GameScene extends Phaser.Scene {
     const H = H0;
     const cx = W / 2;
     const cy = H / 2;
-    const addHud = (obj) => { this.cameras.main.ignore(obj); return obj; };
+    
     const fs = Math.round(Math.min(W, H) * 0.06);
     const fsS = Math.round(fs * 0.6);
 
-    const bg = addHud(this.add.graphics().setDepth(30));
+    const bg = this.add.graphics().setDepth(30));
     bg.fillStyle(0x000000, 0.8);
     bg.fillRect(0, 0, W, H);
 
-    addHud(this.add.text(cx, cy - fs * 2, 'GAME OVER', {
+    this.add.text(cx, cy - fs * 2, 'GAME OVER', {
       fontSize: fs * 1.2 + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 4
-    }).setOrigin(0.5).setDepth(31));
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31));
 
-    addHud(this.add.text(cx, cy - fs * 0.5, 'Kills: ' + this.killCount, {
+    this.add.text(cx, cy - fs * 0.5, 'Kills: ' + this.killCount, {
       fontSize: fsS + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3
-    }).setOrigin(0.5).setDepth(31));
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31));
 
-    addHud(this.add.text(cx, cy + fsS * 0.3, 'Wave: ' + this.waveNum, {
+    this.add.text(cx, cy + fsS * 0.3, 'Wave: ' + this.waveNum, {
       fontSize: fsS + 'px', fill: '#88ddff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3
-    }).setOrigin(0.5).setDepth(31));
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31));
 
-    addHud(this.add.text(cx, cy + fsS * 1.1, 'Level: ' + this.player.level, {
+    this.add.text(cx, cy + fsS * 1.1, 'Level: ' + this.player.level, {
       fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3
-    }).setOrigin(0.5).setDepth(31));
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31));
 
     const KEYS = ['helm', 'sword', 'armor', 'gloves', 'boots'];
     const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
@@ -635,15 +625,15 @@ class GameScene extends Phaser.Scene {
       const lvl = this.player.gear[k] || 0;
       return LABELS[i] + (lvl > 0 ? '+' + lvl : '');
     }).join('  ');
-    addHud(this.add.text(cx, cy + fsS * 2, gearStr, {
+    this.add.text(cx, cy + fsS * 2, gearStr, {
       fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setDepth(31));
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31));
 
-    const btn = addHud(this.add.text(cx, cy + fsS * 3.2, '[ RESTART ]', {
+    const btn = this.add.text(cx, cy + fsS * 3.2, '[ RESTART ]', {
       fontSize: fsS + 'px', fill: '#44ff88', fontFamily: 'Arial Black',
       stroke: '#000', strokeThickness: 3,
       backgroundColor: '#1a3a1a', padding: { x: 16, y: 10 }
-    }).setOrigin(0.5).setDepth(31).setInteractive());
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31).setInteractive());
     btn.on('pointerover', () => btn.setStyle({ fill: '#88ffaa' }));
     btn.on('pointerout', () => btn.setStyle({ fill: '#44ff88' }));
     btn.on('pointerdown', () => this.scene.restart());
@@ -742,3 +732,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
+
+
+
