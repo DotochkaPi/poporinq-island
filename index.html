@@ -73,8 +73,9 @@ class GameScene extends Phaser.Scene {
     // Камера
     this.cameras.main.setBounds(0, 0, ARENA_W, ARENA_H);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    // Зум: примерно 350px игрового пространства на экране
-    const zoom = Math.max(this.scale.width, this.scale.height) / 350;
+    // Адаптивный зум: на экране видно ~500 игровых единиц по меньшей стороне
+    const VIEW_SIZE = 500;
+    const zoom = Math.min(this.scale.width, this.scale.height) / VIEW_SIZE;
     this.cameras.main.setZoom(zoom);
 
     // Группы
