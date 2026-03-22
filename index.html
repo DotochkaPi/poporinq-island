@@ -424,30 +424,31 @@ class GameScene extends Phaser.Scene {
     this._W = W;
     this._H = H;
 
-    // Layout constants — all in % of screen
-    const PX   = W * 0.02;                          // left padding: 2% W
-    const FS   = Math.round(Math.min(W, H) * 0.04); // font: 4% min(W,H)
-    const FSS  = Math.round(FS * 0.75);             // small font
-    const BW   = W * 0.38;                          // bar width: 38% W
-    const BH   = H * 0.012;                         // bar height: 1.2% H
-    const XPH  = H * 0.008;                         // xp bar height: 0.8% H
+    // Camera zoom multiplies setScrollFactor(0) positions too.
+    // So we divide all HUD coords by zoom → after zoom multiply they land correctly on screen.
+    const zoom = Math.min(W, H) / 500;
+    const z = zoom; // shorthand
 
-    // Y positions — top-left anchor
-    const Y_KILLS = H * 0.03;
-    const Y_HP    = H * 0.07;
-    const Y_WAVE  = H * 0.11;
-    const Y_HPBAR = H * 0.15;
-    const Y_LVL   = H * 0.19;
-    const Y_XPBAR = H * 0.22;
+    // Screen-space positions (what user sees), then divide by zoom for game coords
+    const PX     = (W * 0.02) / z;
+    const FS     = Math.round(Math.min(W, H) * 0.04 / z);
+    const FSS    = Math.round(FS * 0.75);
+    const BW     = (W * 0.38) / z;
+    const BH     = Math.max(4, (H * 0.012) / z);
+    const XPH    = Math.max(3, (H * 0.008) / z);
 
-    // Gear — bottom anchor
-    const Y_GEAR   = H * 0.92;
-    const FS_GEAR  = Math.round(Math.min(W, H) * 0.030);
-    const SLOT_W   = (W * 0.96) / 5;
+    const Y_KILLS = (H * 0.03) / z;
+    const Y_HP    = (H * 0.07) / z;
+    const Y_WAVE  = (H * 0.11) / z;
+    const Y_HPBAR = (H * 0.15) / z;
+    const Y_LVL   = (H * 0.19) / z;
+    const Y_XPBAR = (H * 0.22) / z;
+    const Y_GEAR  = (H * 0.92) / z;
+    const FS_GEAR = Math.round(Math.min(W, H) * 0.03 / z);
+    const SLOT_W  = (W * 0.96) / 5 / z;
 
-    // Store bar params for draw methods
-    this._hp  = { x: PX, y: Y_HPBAR, w: BW, h: BH };
-    this._xp  = { x: PX, y: Y_XPBAR, w: BW, h: XPH };
+    this._hp = { x: PX, y: Y_HPBAR, w: BW, h: BH };
+    this._xp = { x: PX, y: Y_XPBAR, w: BW, h: XPH };
 
     const s  = { fontSize: FS  + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3 };
     const sS = { fontSize: FSS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 };
@@ -466,22 +467,21 @@ class GameScene extends Phaser.Scene {
     this.xpBarFill = this.add.graphics().setScrollFactor(0).setDepth(21);
     this.drawXPBar(0, BASE_XP_PER_LEVEL);
 
-    // Gear strip background
     const gearBg = this.add.graphics().setScrollFactor(0).setDepth(19);
     gearBg.fillStyle(0x000000, 0.6);
-    gearBg.fillRect(W * 0.02 - 4, H * 0.90, W * 0.96 + 8, H * 0.09);
+    gearBg.fillRect((W * 0.02 - 4) / z, (H * 0.90) / z, (W * 0.96 + 8) / z, (H * 0.09) / z);
 
-    // Gear slots: 5 equal slots from 2%W to 98%W
     this.gearHudItems = [];
     const LABELS = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
     for (let i = 0; i < 5; i++) {
-      const tx = W * 0.02 + i * SLOT_W + SLOT_W / 2;
+      const tx = (W * 0.02) / z + i * SLOT_W + SLOT_W / 2;
       const t = this.add.text(tx, Y_GEAR, LABELS[i], {
         fontSize: FS_GEAR + 'px', fill: '#555555', fontFamily: 'Arial',
         stroke: '#000', strokeThickness: 2, align: 'center'
       }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
       this.gearHudItems.push(t);
     }
+    this._zoom = zoom;
   }
 
   drawHPBar(hp) {
@@ -514,12 +514,13 @@ class GameScene extends Phaser.Scene {
     if (this.bossHpBg) { this.bossHpBg.destroy(); this.bossHpFill.destroy(); this.bossHpLabel.destroy(); }
     const W = W0;
     const H = H0;
-    const cx    = W / 2;
-    const bw    = W * 0.60;            // 60% W
-    const bh    = H * 0.015;           // 1.5% H
-    const by    = H * 0.85;            // y = 85% H
-    const lblY  = H * 0.82;            // label above bar
-    const fs    = Math.round(Math.min(W, H) * 0.030);
+    const z   = this._zoom || Math.min(W, H) / 500;
+    const cx  = (W / 2) / z;
+    const bw  = (W * 0.60) / z;
+    const bh  = Math.max(4, (H * 0.015) / z);
+    const by  = (H * 0.85) / z;
+    const lblY = (H * 0.82) / z;
+    const fs  = Math.round(Math.min(W, H) * 0.030 / z);
 
     this.bossHpLabel = this.add.text(cx, lblY, 'BOSS', {
       fontSize: fs + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
