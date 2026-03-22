@@ -56,7 +56,9 @@ class GameScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, ARENA_W, ARENA_H);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    const zoom = Math.min(this.scale.width, this.scale.height) / VIEW_SIZE;
+    // Adaptive zoom: show ~600 game units on shortest screen side
+    const shortSide = Math.min(this.scale.width, this.scale.height);
+    const zoom = shortSide / 600;
     this.cameras.main.setZoom(zoom);
 
     this.pops = this.add.group();
@@ -708,11 +710,15 @@ class GameScene extends Phaser.Scene {
 
 const config = {
   type: Phaser.AUTO,
+  width: window.innerWidth,
+  height: window.innerHeight,
   backgroundColor: '#0a1a0a',
   scene: GameScene,
   scale: {
-    mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: window.innerWidth,
+    height: window.innerHeight
   }
 };
 
