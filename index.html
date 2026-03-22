@@ -13,6 +13,10 @@ canvas { display: block; }
 <body>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
+// Screen dimensions — read FIRST before everything else
+const W0 = window.innerWidth;
+const H0 = window.innerHeight;
+
 const ARENA_W = 1200;
 const ARENA_H = 1200;
 const PLAYER_SPEED = 200;
@@ -712,10 +716,6 @@ class GameScene extends Phaser.Scene {
     }
   }
 }
-
-// Screen dimensions — read once on page load
-const W0 = window.innerWidth;
-const H0 = window.innerHeight;
 
 const config = {
   type: Phaser.AUTO,
