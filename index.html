@@ -404,11 +404,8 @@ class GameScene extends Phaser.Scene {
     const { target, dist } = this.getNearestTarget();
     const attackDir = this.getAttackDir(target);
 
-    // Always face and attack toward nearest enemy
+    // Face toward nearest enemy (no separate attack anim — walk/idle continues)
     this.player.facing = attackDir;
-    this.player._attacking = true;
-    this.player.play('knight-attack-' + attackDir, true);
-    this.player.once('animationcomplete', () => { this.player._attacking = false; });
 
     // Slash arc angle toward target
     const angleRad = target
@@ -416,18 +413,35 @@ class GameScene extends Phaser.Scene {
       : Math.PI / 2;
     this.showSlashEffect(angleRad);
 
-    // Deal damage to nearest target if in range
-    if (!target || dist > ATTACK_RADIUS + 32) return;
+    const minionsAlive = this.bossMinions.filter(m => m.alive);
+    const bossShielded = this.boss && this.boss.alive && minionsAlive.length > 0;
 
-    if (target === this.boss) {
-      const dmgBoss = 20 * this.player.stats.damage;
-      this.boss.hp -= dmgBoss;
-      this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, '#ff8800');
-      this.updateBossHPBar();
-      this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
-      if (this.boss.hp <= 0) this.killBoss();
-    } else {
-      this.killPop(target);
+    // Splash: hit ALL pops in ATTACK_RADIUS
+    for (const pop of this.pops.getChildren()) {
+      if (!pop.alive) continue;
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, pop.x, pop.y);
+      if (d <= ATTACK_RADIUS) {
+        this.killPop(pop);
+      }
+    }
+
+    // Boss: only damageable when all minions are dead
+    if (this.boss && this.boss.alive) {
+      if (bossShielded) {
+        // Show immune flash
+        this.tweens.add({ targets: this.boss, alpha: 0.6, duration: 80, yoyo: true });
+        this.showDamageNumber(this.boss.x, this.boss.y - 20, 0, '#aaaaaa');
+      } else {
+        const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
+        if (d <= ATTACK_RADIUS + 32) {
+          const dmgBoss = 20 * this.player.stats.damage;
+          this.boss.hp -= dmgBoss;
+          this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, '#ff8800');
+          this.updateBossHPBar();
+          this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
+          if (this.boss.hp <= 0) this.killBoss();
+        }
+      }
     }
   }
 
@@ -666,7 +680,7 @@ class GameScene extends Phaser.Scene {
     this.player.y = Phaser.Math.Clamp(this.player.y + vy * spd * dt, 16, ARENA_H - 16);
 
     // Knight walk animation
-    if (!this.player._attacking) {
+    if (true) {
       if (vx !== 0 || vy !== 0) {
         let dir = 'down';
         if (Math.abs(vy) >= Math.abs(vx)) { dir = vy > 0 ? 'down' : 'up'; }
@@ -760,6 +774,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
