@@ -163,6 +163,12 @@ const WAVE_COUNTS = [10, 15, 20, 25, 30];
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
+  preload() {
+    this.load.spritesheet('knight', 'assets/knight.png', { frameWidth: 48, frameHeight: 48 });
+    this.load.spritesheet('pop',    'assets/slime_tiny.png', { frameWidth: 48, frameHeight: 48 });
+    this.load.spritesheet('boss',   'assets/slime_big.png',  { frameWidth: 48, frameHeight: 48 });
+  }
+
   create() {
     // --- ARENA ---
     const arena = this.add.graphics();
@@ -172,31 +178,47 @@ class GameScene extends Phaser.Scene {
     for (let x = 0; x <= ARENA_W; x += 100) arena.lineBetween(x, 0, x, ARENA_H);
     for (let y = 0; y <= ARENA_H; y += 100) arena.lineBetween(0, y, ARENA_W, y);
 
-    // --- TEXTURES ---
-    const kg = this.make.graphics({ x: 0, y: 0, add: false });
-    kg.fillStyle(0x4488ff); kg.fillRect(0, 0, 32, 32);
-    kg.fillStyle(0x88bbff); kg.fillRect(8, 4, 16, 10);
-    kg.fillStyle(0xffdd44); kg.fillRect(13, 0, 6, 6);
-    kg.generateTexture('knight', 32, 32); kg.destroy();
+    // --- ANIMATIONS ---
+    // Knight: 48x48, 6 cols x 24 rows
+    // Rows: 0-1=idle down/up, 2-3=idle left/right, 4-5=walk down/up, 6-7=walk left/right
+    // 8-11=hurt, 12-15=death, 16-19=attack down/up/left/right, 20-23=special
+    const C = 6; // columns per row
+    const anims = [
+      { key: 'knight-idle-down',   start: 0*C, end: 0*C+5 },
+      { key: 'knight-idle-up',     start: 1*C, end: 1*C+5 },
+      { key: 'knight-idle-left',   start: 2*C, end: 2*C+5 },
+      { key: 'knight-idle-right',  start: 3*C, end: 3*C+5 },
+      { key: 'knight-walk-down',   start: 4*C, end: 4*C+5 },
+      { key: 'knight-walk-up',     start: 5*C, end: 5*C+5 },
+      { key: 'knight-walk-left',   start: 6*C, end: 6*C+5 },
+      { key: 'knight-walk-right',  start: 7*C, end: 7*C+5 },
+      { key: 'knight-hurt-down',   start: 8*C,  end: 8*C+5 },
+      { key: 'knight-hurt-left',   start: 10*C, end: 10*C+5 },
+      { key: 'knight-attack-down', start: 16*C, end: 16*C+5 },
+      { key: 'knight-attack-up',   start: 17*C, end: 17*C+5 },
+      { key: 'knight-attack-left', start: 18*C, end: 18*C+5 },
+      { key: 'knight-attack-right',start: 19*C, end: 19*C+5 },
+    ];
+    anims.forEach(a => {
+      this.anims.create({ key: a.key, frames: this.anims.generateFrameNumbers('knight', { start: a.start, end: a.end }), frameRate: 8, repeat: a.key.includes('idle')||a.key.includes('walk') ? -1 : 0 });
+    });
 
-    const pg = this.make.graphics({ x: 0, y: 0, add: false });
-    pg.fillStyle(0xff4444); pg.fillCircle(12, 12, 12);
-    pg.fillStyle(0xff8888); pg.fillCircle(8, 9, 3); pg.fillCircle(16, 9, 3);
-    pg.fillStyle(0x000000); pg.fillCircle(8, 9, 1.5); pg.fillCircle(16, 9, 1.5);
-    pg.generateTexture('pop', 24, 24); pg.destroy();
+    // Pop (tiny slime): 48x48, 5 cols x 3 rows
+    // Row 0: idle (5f), Row 1: walk/hop (5f), Row 2: attack/jump (5f)
+    this.anims.create({ key: 'pop-idle',   frames: this.anims.generateFrameNumbers('pop', { start: 0, end: 4 }),  frameRate: 6, repeat: -1 });
+    this.anims.create({ key: 'pop-walk',   frames: this.anims.generateFrameNumbers('pop', { start: 5, end: 9 }),  frameRate: 8, repeat: -1 });
+    this.anims.create({ key: 'pop-attack', frames: this.anims.generateFrameNumbers('pop', { start: 10, end: 14 }), frameRate: 10, repeat: 0 });
 
-    const bg2 = this.make.graphics({ x: 0, y: 0, add: false });
-    bg2.fillStyle(0xcc0000); bg2.fillCircle(32, 32, 32);
-    bg2.fillStyle(0xff6666); bg2.fillCircle(20, 24, 7); bg2.fillCircle(44, 24, 7);
-    bg2.fillStyle(0x000000); bg2.fillCircle(20, 24, 4); bg2.fillCircle(44, 24, 4);
-    bg2.fillStyle(0xffdd44);
-    bg2.fillTriangle(16, 10, 24, 2, 32, 10);
-    bg2.fillTriangle(28, 10, 36, 0, 44, 10);
-    bg2.fillTriangle(40, 10, 48, 4, 56, 10);
-    bg2.generateTexture('boss', 64, 64); bg2.destroy();
+    // Boss (big slime): 48x48, 10 cols x 9 rows
+    // Row 0: idle (10f), Row 1: walk (10f), Row 2: walk2 (10f), Row 5: attack (10f)
+    this.anims.create({ key: 'boss-idle',   frames: this.anims.generateFrameNumbers('boss', { start: 0,  end: 9 }),  frameRate: 6, repeat: -1 });
+    this.anims.create({ key: 'boss-walk',   frames: this.anims.generateFrameNumbers('boss', { start: 10, end: 19 }), frameRate: 8, repeat: -1 });
+    this.anims.create({ key: 'boss-attack', frames: this.anims.generateFrameNumbers('boss', { start: 50, end: 59 }), frameRate: 10, repeat: 0 });
 
     // --- PLAYER ---
-    this.player = this.add.sprite(ARENA_W / 2, ARENA_H / 2, 'knight').setOrigin(0.5).setDepth(5);
+    this.player = this.add.sprite(ARENA_W / 2, ARENA_H / 2, 'knight').setOrigin(0.5).setDepth(5).setScale(1.2);
+    this.player.play('knight-idle-down');
+    this.player.facing = 'down';
     this.player.hp = 100;
     this.player.lastDamageTime = new Map();
     this.player.level = 1;
@@ -279,7 +301,9 @@ class GameScene extends Phaser.Scene {
     else if (side === 2) { x = Phaser.Math.Between(m, ARENA_W - m); y = ARENA_H - m; }
     else                 { x = m; y = Phaser.Math.Between(m, ARENA_H - m); }
     const pop = this.add.sprite(x, y, 'pop').setOrigin(0.5).setDepth(4);
-    pop.alive = true; pop.isBossMinion = boss; pop.setScale(0);
+    pop.alive = true; pop.isBossMinion = boss;
+    pop.setScale(0);
+    pop.play('pop-walk');
     this.pops.add(pop);
     this.tweens.add({ targets: pop, scaleX: 1, scaleY: 1, duration: 200 });
     return pop;
@@ -296,7 +320,8 @@ class GameScene extends Phaser.Scene {
     this.boss.maxHp = this.boss.hp;
     this.boss.alive = true;
     this.boss.setScale(0);
-    this.tweens.add({ targets: this.boss, scaleX: 1, scaleY: 1, duration: 400 });
+    this.boss.play('boss-idle');
+    this.tweens.add({ targets: this.boss, scaleX: 1.5, scaleY: 1.5, duration: 400 });
     this.createBossHPBar();
     this.bossMinions = [];
     for (let i = 0; i < 5; i++) {
@@ -317,6 +342,13 @@ class GameScene extends Phaser.Scene {
 
   autoAttack() {
     if (this.gameOver || this.paused) return;
+    // Play attack animation
+    const dir = this.player.facing || 'down';
+    this.player._attacking = true;
+    this.player.play('knight-attack-' + dir, true);
+    this.player.once('animationcomplete', () => {
+      this.player._attacking = false;
+    });
     const minions = this.bossMinions.filter(m => m.alive);
     if (this.boss && this.boss.alive && minions.length > 0) {
       let nearest = null, minD = ATTACK_RADIUS;
@@ -591,6 +623,24 @@ class GameScene extends Phaser.Scene {
     this.player.x = Phaser.Math.Clamp(this.player.x + vx * spd * dt, 16, ARENA_W - 16);
     this.player.y = Phaser.Math.Clamp(this.player.y + vy * spd * dt, 16, ARENA_H - 16);
 
+    // Knight walk animation
+    if (!this.player._attacking) {
+      if (vx !== 0 || vy !== 0) {
+        let dir = 'down';
+        if (Math.abs(vy) >= Math.abs(vx)) { dir = vy > 0 ? 'down' : 'up'; }
+        else { dir = vx > 0 ? 'right' : 'left'; }
+        if (dir !== this.player.facing || !this.player.anims.isPlaying) {
+          this.player.facing = dir;
+          this.player.play('knight-walk-' + dir, true);
+        }
+      } else {
+        const idle = 'knight-idle-' + (this.player.facing || 'down');
+        if (!this.player.anims.currentAnim || this.player.anims.currentAnim.key !== idle) {
+          this.player.play(idle, true);
+        }
+      }
+    }
+
     // Wave end check
     if (this.waveState === 'spawning' &&
         this.popSpawned >= this.popToSpawn &&
@@ -607,7 +657,9 @@ class GameScene extends Phaser.Scene {
       if (dist > 18) {
         pop.x += (dx/dist) * POP_SPEED * dt;
         pop.y += (dy/dist) * POP_SPEED * dt;
+        if (pop.anims.currentAnim && pop.anims.currentAnim.key !== 'pop-walk') pop.play('pop-walk', true);
       } else {
+        if (pop.anims.currentAnim && pop.anims.currentAnim.key !== 'pop-attack') pop.play('pop-attack', true);
         const last = this.player.lastDamageTime.get(pop) || 0;
         if (time - last > POP_DAMAGE_COOLDOWN) {
           this.player.lastDamageTime.set(pop, time);
@@ -628,7 +680,9 @@ class GameScene extends Phaser.Scene {
       if (dist > 48) {
         this.boss.x += (dx/dist) * 50 * dt;
         this.boss.y += (dy/dist) * 50 * dt;
+        if (this.boss.anims.currentAnim && this.boss.anims.currentAnim.key !== 'boss-walk') this.boss.play('boss-walk', true);
       } else {
+        if (this.boss.anims.currentAnim && this.boss.anims.currentAnim.key !== 'boss-attack') this.boss.play('boss-attack', true);
         const last = this.player.lastDamageTime.get(this.boss) || 0;
         if (time - last > 800) {
           this.player.lastDamageTime.set(this.boss, time);
@@ -664,6 +718,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
