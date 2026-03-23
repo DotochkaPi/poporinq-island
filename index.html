@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -67,16 +67,16 @@ canvas { display: block; }
 }
 #levelup-overlay h2 { font-size: 7vmin; color: #ffdd44; margin-bottom: 1vmin; text-shadow: 0 0 10px #ffaa00; }
 #levelup-overlay p  { font-size: 3vmin; color: #fff; margin-bottom: 3vmin; }
-#levelup-cards { display: flex; gap: 3vmin; }
+#levelup-cards { display: flex; gap: 2vmin; flex-wrap: wrap; justify-content: center; max-width: 95vw; }
 .lcard {
-  width: 26vw; max-width: 200px; padding: 3vmin;
+  width: 26vw; min-width: 80px; max-width: 160px; padding: 2.5vmin 2vmin;
   background: #1a2a3a; border: 2px solid #4488ff; border-radius: 10px;
   cursor: pointer; text-align: center; transition: background 0.15s, border-color 0.15s;
-  pointer-events: auto;
+  pointer-events: auto; box-sizing: border-box;
 }
 .lcard:hover { background: #2a4a6a; border-color: #88bbff; }
-.lcard .cn { font-size: 4vmin; color: #ffdd44; font-weight: bold; margin-bottom: 1vmin; }
-.lcard .cd { font-size: 3vmin; color: #aaddff; }
+.lcard .cn { font-size: min(4vmin, 16px); color: #ffdd44; font-weight: bold; margin-bottom: 1vmin; word-break: break-word; }
+.lcard .cd { font-size: min(3vmin, 13px); color: #aaddff; word-break: break-word; }
 
 #gameover-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -664,5 +664,6 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
