@@ -340,96 +340,94 @@ class GameScene extends Phaser.Scene {
 
   // ==================== COMBAT ====================
 
-  showSlashEffect() {
-    const dir = this.player.facing || 'down';
-    const r = ATTACK_RADIUS;
-    const px = this.player.x, py = this.player.y;
-
-    // Direction angle + arc spread
-    const angleMap = { down: Math.PI/2, up: -Math.PI/2, left: Math.PI, right: 0 };
-    const baseAngle = angleMap[dir];
-    const spread = Math.PI * 0.7; // ~126 degrees arc
-
-    const g = this.add.graphics().setDepth(8);
-
-    // Outer glow arc
-    g.lineStyle(6, 0xffffff, 0.5);
-    g.beginPath();
-    g.arc(px, py, r + 4, baseAngle - spread/2, baseAngle + spread/2, false);
-    g.strokePath();
-
-    // Main slash arc
-    g.lineStyle(3, 0xffee88, 1.0);
-    g.beginPath();
-    g.arc(px, py, r, baseAngle - spread/2, baseAngle + spread/2, false);
-    g.strokePath();
-
-    // Inner arc
-    g.lineStyle(2, 0xffffff, 0.8);
-    g.beginPath();
-    g.arc(px, py, r - 8, baseAngle - spread/2, baseAngle + spread/2, false);
-    g.strokePath();
-
-    // Tip lines at arc ends
-    const a1 = baseAngle - spread/2, a2 = baseAngle + spread/2;
-    g.lineStyle(2, 0xffee88, 0.9);
-    g.lineBetween(px + Math.cos(a1)*(r-12), py + Math.sin(a1)*(r-12), px + Math.cos(a1)*(r+8), py + Math.sin(a1)*(r+8));
-    g.lineBetween(px + Math.cos(a2)*(r-12), py + Math.sin(a2)*(r-12), px + Math.cos(a2)*(r+8), py + Math.sin(a2)*(r+8));
-
-    // Fade out
-    this.tweens.add({
-      targets: g, alpha: 0, duration: 250, ease: 'Power2',
-      onComplete: () => g.destroy()
-    });
-  }
-
-  autoAttack() {
-    if (this.gameOver || this.paused) return;
-    // Play attack animation + slash effect
-    const dir = this.player.facing || 'down';
-    this.player._attacking = true;
-    this.player.play('knight-attack-' + dir, true);
-    this.player.once('animationcomplete', () => {
-      this.player._attacking = false;
-    });
-    this.showSlashEffect();
-    const minions = this.bossMinions.filter(m => m.alive);
-    if (this.boss && this.boss.alive && minions.length > 0) {
-      let nearest = null, minD = ATTACK_RADIUS;
-      for (const m of minions) {
-        const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, m.x, m.y);
-        if (d < minD) { minD = d; nearest = m; }
-      }
-      if (nearest) this.killPop(nearest);
-      return;
-    }
-    if (this.boss && this.boss.alive) {
-      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
-      if (d < ATTACK_RADIUS + 32) {
-        const dmgBoss = 20 * this.player.stats.damage;
-        this.boss.hp -= dmgBoss;
-        this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, '#ff8800');
-        this.updateBossHPBar();
-        this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
-        const line = this.add.graphics().setDepth(7);
-        line.lineStyle(3, 0xff8800); line.lineBetween(this.player.x, this.player.y, this.boss.x, this.boss.y);
-        this.time.delayedCall(120, () => line.destroy());
-        if (this.boss.hp <= 0) this.killBoss();
-      }
-      return;
-    }
-    const pops = this.pops.getChildren();
-    let nearest = null, minD = ATTACK_RADIUS;
-    for (const pop of pops) {
+  getNearestTarget() {
+    // Returns nearest alive enemy (pop or boss) within or outside radius
+    let nearest = null, minD = Infinity;
+    for (const pop of this.pops.getChildren()) {
       if (!pop.alive) continue;
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, pop.x, pop.y);
       if (d < minD) { minD = d; nearest = pop; }
     }
-    if (nearest) {
-      this.killPop(nearest);
-      const line = this.add.graphics().setDepth(7);
-      line.lineStyle(2, 0xffff00); line.lineBetween(this.player.x, this.player.y, nearest.x, nearest.y);
-      this.time.delayedCall(100, () => line.destroy());
+    if (this.boss && this.boss.alive) {
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
+      if (d < minD) { minD = d; nearest = this.boss; }
+    }
+    return { target: nearest, dist: minD };
+  }
+
+  getAttackDir(target) {
+    if (!target) return 'down';
+    const dx = target.x - this.player.x;
+    const dy = target.y - this.player.y;
+    if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? 'right' : 'left';
+    return dy > 0 ? 'down' : 'up';
+  }
+
+  showSlashEffect(angleRad) {
+    const r = ATTACK_RADIUS;
+    const px = this.player.x, py = this.player.y;
+    const spread = Math.PI * 0.7;
+
+    const g = this.add.graphics().setDepth(8);
+
+    // Outer glow
+    g.lineStyle(6, 0xffffff, 0.4);
+    g.beginPath();
+    g.arc(px, py, r + 4, angleRad - spread/2, angleRad + spread/2, false);
+    g.strokePath();
+
+    // Main slash
+    g.lineStyle(3, 0xffee88, 1.0);
+    g.beginPath();
+    g.arc(px, py, r, angleRad - spread/2, angleRad + spread/2, false);
+    g.strokePath();
+
+    // Inner
+    g.lineStyle(2, 0xffffff, 0.7);
+    g.beginPath();
+    g.arc(px, py, r - 8, angleRad - spread/2, angleRad + spread/2, false);
+    g.strokePath();
+
+    // Tips
+    const a1 = angleRad - spread/2, a2 = angleRad + spread/2;
+    g.lineStyle(2, 0xffee88, 0.9);
+    g.lineBetween(px + Math.cos(a1)*(r-12), py + Math.sin(a1)*(r-12), px + Math.cos(a1)*(r+8), py + Math.sin(a1)*(r+8));
+    g.lineBetween(px + Math.cos(a2)*(r-12), py + Math.sin(a2)*(r-12), px + Math.cos(a2)*(r+8), py + Math.sin(a2)*(r+8));
+
+    this.tweens.add({ targets: g, alpha: 0, duration: 250, ease: 'Power2', onComplete: () => g.destroy() });
+  }
+
+  autoAttack() {
+    if (this.gameOver || this.paused) return;
+
+    // Find nearest target → determine attack direction
+    const { target, dist } = this.getNearestTarget();
+    const attackDir = this.getAttackDir(target);
+
+    // Always face and attack toward nearest enemy
+    this.player.facing = attackDir;
+    this.player._attacking = true;
+    this.player.play('knight-attack-' + attackDir, true);
+    this.player.once('animationcomplete', () => { this.player._attacking = false; });
+
+    // Slash arc angle toward target
+    const angleRad = target
+      ? Math.atan2(target.y - this.player.y, target.x - this.player.x)
+      : Math.PI / 2;
+    this.showSlashEffect(angleRad);
+
+    // Deal damage to nearest target if in range
+    if (!target || dist > ATTACK_RADIUS + 32) return;
+
+    if (target === this.boss) {
+      const dmgBoss = 20 * this.player.stats.damage;
+      this.boss.hp -= dmgBoss;
+      this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, '#ff8800');
+      this.updateBossHPBar();
+      this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
+      if (this.boss.hp <= 0) this.killBoss();
+    } else {
+      this.killPop(target);
     }
   }
 
@@ -762,6 +760,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
