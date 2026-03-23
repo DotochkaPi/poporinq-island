@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8,9 +8,142 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #0a1a0a; }
 canvas { display: block; }
+
+/* HUD overlay — always on top, always in screen pixels */
+#hud {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 10;
+  font-family: Arial, sans-serif;
+  -webkit-text-stroke: 0;
+}
+#hud-top {
+  position: absolute; top: 3%; left: 2%;
+  color: #fff; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
+}
+#hud-top .row { font-size: 4vmin; line-height: 1.5; }
+#hud-top .lvl { font-size: 3vmin; color: #ffdd44; margin-top: 2px; }
+.bar-wrap { width: 38vw; height: 1.2vmin; background: #111; border-radius: 2px; margin: 2px 0; }
+.bar-fill { height: 100%; border-radius: 2px; transition: width 0.15s; }
+#hp-fill  { background: #44ff44; }
+#xp-fill  { background: #ffdd00; }
+
+#gear-strip {
+  position: absolute; bottom: 0; left: 0; width: 100%;
+  background: rgba(0,0,0,0.55);
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 1.5vmin 0;
+  pointer-events: none;
+}
+.gear-slot {
+  font-size: 3vmin; color: #556655;
+  text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
+  text-align: center; min-width: 18%;
+}
+.gear-slot.active { color: #ffdd44; }
+
+#boss-bar {
+  position: absolute; bottom: 14%; left: 20%; width: 60%;
+  display: none;
+}
+#boss-label {
+  text-align: center; color: #ff4444; font-size: 3vmin; font-weight: bold;
+  text-shadow: -1px -1px 0 #000, 1px 1px 0 #000; margin-bottom: 3px;
+}
+#boss-fill { background: #ff2222; width: 100%; }
+
+#msg {
+  position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
+  font-size: 6vmin; font-weight: bold; color: #ffdd44;
+  text-shadow: -2px -2px 0 #000, 2px 2px 0 #000;
+  pointer-events: none; white-space: nowrap;
+  transition: opacity 0.3s;
+}
+
+#levelup-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.75); display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  z-index: 20; pointer-events: auto;
+}
+#levelup-overlay h2 { font-size: 7vmin; color: #ffdd44; margin-bottom: 1vmin; text-shadow: 0 0 10px #ffaa00; }
+#levelup-overlay p  { font-size: 3vmin; color: #fff; margin-bottom: 3vmin; }
+#levelup-cards { display: flex; gap: 3vmin; }
+.lcard {
+  width: 26vw; max-width: 200px; padding: 3vmin;
+  background: #1a2a3a; border: 2px solid #4488ff; border-radius: 10px;
+  cursor: pointer; text-align: center; transition: background 0.15s, border-color 0.15s;
+  pointer-events: auto;
+}
+.lcard:hover { background: #2a4a6a; border-color: #88bbff; }
+.lcard .cn { font-size: 4vmin; color: #ffdd44; font-weight: bold; margin-bottom: 1vmin; }
+.lcard .cd { font-size: 3vmin; color: #aaddff; }
+
+#gameover-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85); display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  z-index: 20; pointer-events: auto;
+}
+#gameover-overlay h1 { font-size: 10vmin; color: #ff4444; margin-bottom: 2vmin; }
+#gameover-overlay .stat { font-size: 4vmin; color: #fff; margin: 0.5vmin; }
+#gameover-overlay .gear { font-size: 3.5vmin; color: #ffdd44; margin: 1.5vmin; }
+#restart-btn {
+  margin-top: 3vmin; padding: 2vmin 5vmin;
+  font-size: 4vmin; font-weight: bold; color: #44ff88;
+  background: #1a3a1a; border: 2px solid #44ff88; border-radius: 8px;
+  cursor: pointer;
+}
+#restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
 </style>
 </head>
 <body>
+
+<!-- HTML HUD — works on any resolution -->
+<div id="hud">
+  <div id="hud-top">
+    <div class="row" id="h-kills">Kills: 0</div>
+    <div class="row" id="h-hp">HP: 100</div>
+    <div class="bar-wrap"><div class="bar-fill" id="hp-fill" style="width:100%"></div></div>
+    <div class="row" id="h-wave">Wave 1</div>
+    <div class="lvl" id="h-lvl">LVL 1</div>
+    <div class="bar-wrap"><div class="bar-fill" id="xp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div id="gear-strip">
+    <div class="gear-slot" id="g-helm">HLM</div>
+    <div class="gear-slot" id="g-sword">SWD</div>
+    <div class="gear-slot" id="g-armor">ARM</div>
+    <div class="gear-slot" id="g-gloves">GLV</div>
+    <div class="gear-slot" id="g-boots">BOT</div>
+  </div>
+
+  <div id="boss-bar">
+    <div id="boss-label">BOSS</div>
+    <div class="bar-wrap" style="width:100%;height:2vmin">
+      <div class="bar-fill" id="boss-fill" style="width:100%"></div>
+    </div>
+  </div>
+
+  <div id="msg" style="opacity:0"></div>
+</div>
+
+<!-- Level up overlay -->
+<div id="levelup-overlay">
+  <h2>LEVEL UP!</h2>
+  <p>Choose upgrade:</p>
+  <div id="levelup-cards"></div>
+</div>
+
+<!-- Game over overlay -->
+<div id="gameover-overlay">
+  <h1>GAME OVER</h1>
+  <div class="stat" id="go-kills"></div>
+  <div class="stat" id="go-wave"></div>
+  <div class="stat" id="go-level"></div>
+  <div class="gear" id="go-gear"></div>
+  <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
 // --- CONSTANTS ---
@@ -125,7 +258,7 @@ class GameScene extends Phaser.Scene {
     this.popSpawned = 0;
     this.popOnMapLimit = Math.max(1, Math.ceil(n * 0.5));
     this.waveState = 'spawning';
-    this.hudWave.setText('Wave ' + this.waveNum + ' (' + n + ')');
+    document.getElementById('h-wave').textContent = 'Wave ' + this.waveNum + ' (' + n + ')';
     this.showMsg('Wave ' + this.waveNum);
     this.fillWave();
   }
@@ -154,7 +287,7 @@ class GameScene extends Phaser.Scene {
 
   spawnBoss() {
     this.waveState = 'boss';
-    this.hudWave.setText('BOSS!');
+    document.getElementById('h-wave').textContent = 'BOSS!';
     this.showMsg('BOSS!');
     const bx = Phaser.Math.Between(200, ARENA_W - 200);
     const by = 80;
@@ -226,7 +359,7 @@ class GameScene extends Phaser.Scene {
     if (!pop.alive) return;
     pop.alive = false;
     this.killCount++;
-    this.hudKills.setText('Kills: ' + this.killCount);
+    document.getElementById('h-kills').textContent = 'Kills: ' + this.killCount;
     this.addXP(XP_PER_POP);
     this.tweens.add({
       targets: pop, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
@@ -242,7 +375,7 @@ class GameScene extends Phaser.Scene {
   killBoss() {
     this.boss.alive = false;
     this.killCount++;
-    this.hudKills.setText('Kills: ' + this.killCount);
+    document.getElementById('h-kills').textContent = 'Kills: ' + this.killCount;
     this.destroyBossHPBar();
     this.tweens.add({
       targets: this.boss, scaleX: 0, scaleY: 0, alpha: 0, duration: 400,
@@ -263,7 +396,7 @@ class GameScene extends Phaser.Scene {
       this.player.xp -= this.player.xpToNext;
       this.player.level++;
       this.player.xpToNext = BASE_XP * this.player.level;
-      this.hudLevel.setText('LVL ' + this.player.level);
+      document.getElementById('h-lvl').textContent = 'LVL ' + this.player.level;
       this.showLevelUp();
     }
     this.updateXPBar();
@@ -271,65 +404,34 @@ class GameScene extends Phaser.Scene {
 
   showLevelUp() {
     this.paused = true;
-    const W = this.scale.width, H = this.scale.height;
-    const cx = W / 2, cy = H / 2;
-    const fs = Math.round(Math.min(W, H) * 0.05);
-    const fsS = Math.round(fs * 0.7);
-    const cw = Math.round(W * 0.25), ch = Math.round(H * 0.2), gap = Math.round(W * 0.03);
-    const totalW = 3 * cw + 2 * gap;
-    const startX = cx - totalW / 2;
-    const cardY = cy - ch / 2;
-
     const opts = [
-      { name: 'POWER',  desc: '+20% damage',   apply: () => { this.player.stats.damage *= 1.2; } },
-      { name: 'SPEED',  desc: '-15% atk cd',   apply: () => { this.player.stats.attackSpeed *= 0.85; } },
+      { name: 'POWER',  desc: '+20% damage',    apply: () => { this.player.stats.damage *= 1.2; } },
+      { name: 'SPEED',  desc: '-15% atk cd',    apply: () => { this.player.stats.attackSpeed *= 0.85; } },
       { name: 'ARMOR',  desc: '-15% dmg taken', apply: () => { this.player.stats.defense += 1; } },
-      { name: 'HEALTH', desc: '+25 max HP',     apply: () => {
+      { name: 'HEALTH', desc: '+25 max HP',      apply: () => {
         this.player.stats.maxHp += 25;
         this.player.hp = Math.min(this.player.hp + 25, this.player.stats.maxHp);
-        this.hudHP.setText('HP: ' + Math.floor(this.player.hp));
+        document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
         this.updateHPBar();
       }},
-      { name: 'MOVE',   desc: '+15% speed',     apply: () => { this.player.stats.moveSpeed *= 1.15; } }
+      { name: 'MOVE',   desc: '+15% speed',      apply: () => { this.player.stats.moveSpeed *= 1.15; } }
     ];
     const chosen = Phaser.Utils.Array.Shuffle(opts.slice()).slice(0, 3);
-    const all = [];
-
-    const ov = this.add.graphics().setScrollFactor(0).setDepth(38);
-    ov.fillStyle(0x000000, 0.75); ov.fillRect(0, 0, W, H);
-    all.push(ov);
-
-    all.push(this.add.text(cx, cardY - fs * 1.5, 'LEVEL UP!', {
-      fontSize: fs + 'px', fill: '#ffdd44', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 4
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(39));
-
-    all.push(this.add.text(cx, cardY - fs * 0.5, 'Choose upgrade:', {
-      fontSize: fsS + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(39));
-
-    chosen.forEach((card, i) => {
-      const x = startX + i * (cw + gap);
-      const bg = this.add.graphics().setScrollFactor(0).setDepth(39);
-      const draw = (h) => {
-        bg.clear();
-        bg.fillStyle(h ? 0x2a4a6a : 0x1a2a3a, 0.95);
-        bg.fillRoundedRect(x, cardY, cw, ch, 8);
-        bg.lineStyle(2, h ? 0x88bbff : 0x4488ff);
-        bg.strokeRoundedRect(x, cardY, cw, ch, 8);
+    const container = document.getElementById('levelup-cards');
+    container.innerHTML = '';
+    const scene = this;
+    chosen.forEach(card => {
+      const div = document.createElement('div');
+      div.className = 'lcard';
+      div.innerHTML = '<div class="cn">' + card.name + '</div><div class="cd">' + card.desc + '</div>';
+      div.onclick = () => {
+        card.apply();
+        document.getElementById('levelup-overlay').style.display = 'none';
+        scene.paused = false;
       };
-      draw(false);
-      const nt = this.add.text(x + cw / 2, cardY + ch * 0.3, card.name, {
-        fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(40);
-      const dt = this.add.text(x + cw / 2, cardY + ch * 0.65, card.desc, {
-        fontSize: Math.round(fsS * 0.85) + 'px', fill: '#aaddff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(40);
-      const zone = this.add.zone(x, cardY, cw, ch).setScrollFactor(0).setDepth(41).setOrigin(0).setInteractive();
-      zone.on('pointerover', () => draw(true));
-      zone.on('pointerout', () => draw(false));
-      zone.on('pointerdown', () => { card.apply(); all.forEach(o => o.destroy()); this.paused = false; });
-      all.push(bg, nt, dt, zone);
+      container.appendChild(div);
     });
+    document.getElementById('levelup-overlay').style.display = 'flex';
   }
 
   // ==================== GEAR ====================
@@ -354,165 +456,78 @@ class GameScene extends Phaser.Scene {
   }
 
   updateGearHUD() {
-    if (!this.gearItems) return;
-    const KEYS = ['helm', 'sword', 'armor', 'gloves', 'boots'];
-    const LBL  = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
-    KEYS.forEach((k, i) => {
-      const lvl = this.player.gear[k] || 0;
-      this.gearItems[i].setText(LBL[i] + (lvl > 0 ? '+' + lvl : ''));
-      this.gearItems[i].setColor(lvl > 0 ? '#ffdd44' : '#556655');
-    });
-  }
-
-  // ==================== HUD ====================
-
-  createHUD() {
-    const W = this.scale.width, H = this.scale.height;
-    const fs = Math.round(Math.min(W, H) * 0.045);
-    const fsS = Math.round(fs * 0.72);
-    const px = Math.round(W * 0.02);
-    const lh = Math.round(fs * 1.4);
-    const barW = Math.round(W * 0.38);
-
-    const s  = { fontSize: fs  + 'px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 3 };
-    const sS = { fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 };
-
-    let y = Math.round(H * 0.03);
-    this.hudKills = this.add.text(px, y, 'Kills: 0', s).setScrollFactor(0).setDepth(20); y += lh;
-    this.hudHP    = this.add.text(px, y, 'HP: 100',  s).setScrollFactor(0).setDepth(20); y += lh;
-    this.hudWave  = this.add.text(px, y, 'Wave 1',   s).setScrollFactor(0).setDepth(20); y += lh + 2;
-
-    // HP bar
-    this._hpBar = { x: px, y, w: barW, h: Math.max(6, Math.round(H * 0.013)) };
-    this.hpBg   = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.hpFill = this.add.graphics().setScrollFactor(0).setDepth(21);
-    this.updateHPBar();
-    y += this._hpBar.h + 6;
-
-    this.hudLevel = this.add.text(px, y, 'LVL 1', sS).setScrollFactor(0).setDepth(20); y += fsS + 4;
-
-    // XP bar
-    this._xpBar = { x: px, y, w: barW, h: Math.max(4, Math.round(H * 0.009)) };
-    this.xpBg   = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.xpFill = this.add.graphics().setScrollFactor(0).setDepth(21);
-    this.updateXPBar();
-
-    // Gear strip
-    const gfs = Math.round(Math.min(W, H) * 0.032);
-    const gearY = Math.round(H * 0.91);
-    const slotW = Math.round(W / 5);
-    const gearBg = this.add.graphics().setScrollFactor(0).setDepth(19);
-    gearBg.fillStyle(0x000000, 0.55);
-    gearBg.fillRect(0, Math.round(H * 0.89), W, Math.round(H * 0.11));
-    this.gearItems = [];
-    const LBL = ['HLM', 'SWD', 'ARM', 'GLV', 'BOT'];
-    for (let i = 0; i < 5; i++) {
-      const t = this.add.text(i * slotW + slotW / 2, gearY, LBL[i], {
-        fontSize: gfs + 'px', fill: '#556655', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2, align: 'center'
-      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
-      this.gearItems.push(t);
+    const MAP = { helm: 'g-helm', sword: 'g-sword', armor: 'g-armor', gloves: 'g-gloves', boots: 'g-boots' };
+    const LBL = { helm: 'HLM', sword: 'SWD', armor: 'ARM', gloves: 'GLV', boots: 'BOT' };
+    for (const [key, id] of Object.entries(MAP)) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      const lvl = this.player.gear[key] || 0;
+      el.textContent = LBL[key] + (lvl > 0 ? '+' + lvl : '');
+      el.className = 'gear-slot' + (lvl > 0 ? ' active' : '');
     }
   }
 
+  // ==================== HUD (HTML DOM) ====================
+
+  createHUD() {
+    // All HUD is HTML — nothing to create in Phaser
+  }
+
   updateHPBar() {
-    const { x, y, w, h } = this._hpBar;
-    this.hpBg.clear(); this.hpBg.fillStyle(0x111111, 0.9); this.hpBg.fillRect(x, y, w, h);
-    this.hpFill.clear();
     const pct = Math.max(0, Math.min(1, this.player.hp / this.player.stats.maxHp));
-    const col = pct > 0.6 ? 0x44ff44 : pct > 0.3 ? 0xffaa00 : 0xff3333;
-    this.hpFill.fillStyle(col); this.hpFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
+    const el = document.getElementById('hp-fill');
+    if (el) {
+      el.style.width = (pct * 100) + '%';
+      el.style.background = pct > 0.6 ? '#44ff44' : pct > 0.3 ? '#ffaa00' : '#ff3333';
+    }
   }
 
   updateXPBar() {
-    const { x, y, w, h } = this._xpBar;
-    this.xpBg.clear(); this.xpBg.fillStyle(0x111111, 0.9); this.xpBg.fillRect(x, y, w, h);
-    this.xpFill.clear();
     const pct = Math.min(1, this.player.xp / this.player.xpToNext);
-    this.xpFill.fillStyle(0xffdd00); this.xpFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
+    const el = document.getElementById('xp-fill');
+    if (el) el.style.width = (pct * 100) + '%';
   }
 
-  // ==================== BOSS HP BAR ====================
+  // ==================== BOSS HP BAR (HTML) ====================
 
   createBossHPBar() {
-    if (this.bossBg) { this.bossBg.destroy(); this.bossFill.destroy(); this.bossLabel.destroy(); }
-    const W = this.scale.width, H = this.scale.height;
-    const bw = Math.round(W * 0.6), bh = Math.max(6, Math.round(H * 0.015));
-    const bx = (W - bw) / 2, by = Math.round(H * 0.85);
-    const fs = Math.round(Math.min(W, H) * 0.03);
-    this._bossBar = { x: bx, y: by, w: bw, h: bh };
-    this.bossLabel = this.add.text(W / 2, by - fs - 4, 'BOSS', {
-      fontSize: fs + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(22);
-    this.bossBg   = this.add.graphics().setScrollFactor(0).setDepth(22);
-    this.bossFill = this.add.graphics().setScrollFactor(0).setDepth(23);
-    this.updateBossHPBar();
+    document.getElementById('boss-bar').style.display = 'block';
+    document.getElementById('boss-fill').style.width = '100%';
   }
 
   updateBossHPBar() {
-    if (!this.bossBg || !this._bossBar) return;
-    const { x, y, w, h } = this._bossBar;
-    this.bossBg.clear(); this.bossBg.fillStyle(0x222222, 0.9); this.bossBg.fillRect(x, y, w, h);
-    this.bossFill.clear();
-    const pct = Math.max(0, this.boss ? this.boss.hp / this.boss.maxHp : 0);
-    this.bossFill.fillStyle(0xff2222); this.bossFill.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * pct), h - 2);
+    if (!this.boss) return;
+    const pct = Math.max(0, this.boss.hp / this.boss.maxHp);
+    document.getElementById('boss-fill').style.width = (pct * 100) + '%';
   }
 
   destroyBossHPBar() {
-    ['bossBg','bossFill','bossLabel'].forEach(k => { if (this[k]) { this[k].destroy(); this[k] = null; } });
-    this._bossBar = null;
+    document.getElementById('boss-bar').style.display = 'none';
   }
 
-  // ==================== MESSAGES ====================
+  // ==================== MESSAGES (HTML) ====================
 
   showMsg(text) {
-    const W = this.scale.width, H = this.scale.height;
-    const fs = Math.round(Math.min(W, H) * 0.055);
-    const t = this.add.text(W / 2, H * 0.18, text, {
-      fontSize: fs + 'px', fill: '#ffdd44', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 4
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(25);
-    this.tweens.add({ targets: t, alpha: 0, y: t.y - 30, duration: 2000, delay: 1000, onComplete: () => t.destroy() });
+    const el = document.getElementById('msg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.opacity = '1';
+    clearTimeout(this._msgTimer);
+    this._msgTimer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
   }
 
-  // ==================== GAME OVER ====================
+  // ==================== GAME OVER (HTML) ====================
 
   showGameOver() {
     this.gameOver = true;
-    const W = this.scale.width, H = this.scale.height;
-    const cx = W / 2, cy = H / 2;
-    const fs = Math.round(Math.min(W, H) * 0.07);
-    const fsS = Math.round(fs * 0.55);
-
-    const ov = this.add.graphics().setScrollFactor(0).setDepth(30);
-    ov.fillStyle(0x000000, 0.8); ov.fillRect(0, 0, W, H);
-
-    this.add.text(cx, cy - fs * 1.8, 'GAME OVER', {
-      fontSize: fs + 'px', fill: '#ff4444', fontFamily: 'Arial Black', stroke: '#000', strokeThickness: 4
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
-
-    [
-      ['Kills: ' + this.killCount, '#ffffff', cy - fs * 0.4],
-      ['Wave: '  + this.waveNum,   '#88ddff', cy + fsS * 0.5],
-      ['Level: ' + this.player.level, '#ffdd44', cy + fsS * 1.5]
-    ].forEach(([txt, col, y]) => {
-      this.add.text(cx, y, txt, {
-        fontSize: fsS + 'px', fill: col, fontFamily: 'Arial', stroke: '#000', strokeThickness: 3
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
-    });
-
     const KEYS = ['helm','sword','armor','gloves','boots'];
     const LBL  = ['HLM','SWD','ARM','GLV','BOT'];
     const gs = KEYS.map((k,i) => { const l = this.player.gear[k]||0; return LBL[i]+(l>0?'+'+l:''); }).join('  ');
-    this.add.text(cx, cy + fsS * 2.5, gs, {
-      fontSize: fsS + 'px', fill: '#ffdd44', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
-
-    const btn = this.add.text(cx, cy + fsS * 3.8, '[ RESTART ]', {
-      fontSize: fsS + 'px', fill: '#44ff88', fontFamily: 'Arial Black',
-      stroke: '#000', strokeThickness: 3, backgroundColor: '#1a3a1a', padding: { x: 16, y: 10 }
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(31).setInteractive();
-    btn.on('pointerover', () => btn.setStyle({ fill: '#88ffaa' }));
-    btn.on('pointerout',  () => btn.setStyle({ fill: '#44ff88' }));
-    btn.on('pointerdown', () => this.scene.restart());
+    document.getElementById('go-kills').textContent  = 'Kills: '  + this.killCount;
+    document.getElementById('go-wave').textContent   = 'Wave: '   + this.waveNum;
+    document.getElementById('go-level').textContent  = 'Level: '  + this.player.level;
+    document.getElementById('go-gear').textContent   = gs;
+    document.getElementById('gameover-overlay').style.display = 'flex';
   }
 
   // ==================== JOYSTICK ====================
@@ -582,7 +597,7 @@ class GameScene extends Phaser.Scene {
           this.player.lastDamageTime.set(pop, time);
           const dmg = POP_DAMAGE * Math.max(0.1, 1 - this.player.stats.defense * 0.15);
           this.player.hp = Math.max(0, this.player.hp - dmg);
-          this.hudHP.setText('HP: ' + Math.floor(this.player.hp));
+          document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
           this.updateHPBar();
           this.tweens.add({ targets: this.player, alpha: 0.3, duration: 100, yoyo: true });
           if (this.player.hp <= 0) { this.showGameOver(); return; }
@@ -603,7 +618,7 @@ class GameScene extends Phaser.Scene {
           this.player.lastDamageTime.set(this.boss, time);
           const dmg = 20 * Math.max(0.1, 1 - this.player.stats.defense * 0.15);
           this.player.hp = Math.max(0, this.player.hp - dmg);
-          this.hudHP.setText('HP: ' + Math.floor(this.player.hp));
+          document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
           this.updateHPBar();
           this.tweens.add({ targets: this.player, alpha: 0.2, duration: 150, yoyo: true });
           if (this.player.hp <= 0) { this.showGameOver(); return; }
@@ -633,3 +648,5 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
+
