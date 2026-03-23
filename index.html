@@ -340,15 +340,59 @@ class GameScene extends Phaser.Scene {
 
   // ==================== COMBAT ====================
 
+  showSlashEffect() {
+    const dir = this.player.facing || 'down';
+    const r = ATTACK_RADIUS;
+    const px = this.player.x, py = this.player.y;
+
+    // Direction angle + arc spread
+    const angleMap = { down: Math.PI/2, up: -Math.PI/2, left: Math.PI, right: 0 };
+    const baseAngle = angleMap[dir];
+    const spread = Math.PI * 0.7; // ~126 degrees arc
+
+    const g = this.add.graphics().setDepth(8);
+
+    // Outer glow arc
+    g.lineStyle(6, 0xffffff, 0.5);
+    g.beginPath();
+    g.arc(px, py, r + 4, baseAngle - spread/2, baseAngle + spread/2, false);
+    g.strokePath();
+
+    // Main slash arc
+    g.lineStyle(3, 0xffee88, 1.0);
+    g.beginPath();
+    g.arc(px, py, r, baseAngle - spread/2, baseAngle + spread/2, false);
+    g.strokePath();
+
+    // Inner arc
+    g.lineStyle(2, 0xffffff, 0.8);
+    g.beginPath();
+    g.arc(px, py, r - 8, baseAngle - spread/2, baseAngle + spread/2, false);
+    g.strokePath();
+
+    // Tip lines at arc ends
+    const a1 = baseAngle - spread/2, a2 = baseAngle + spread/2;
+    g.lineStyle(2, 0xffee88, 0.9);
+    g.lineBetween(px + Math.cos(a1)*(r-12), py + Math.sin(a1)*(r-12), px + Math.cos(a1)*(r+8), py + Math.sin(a1)*(r+8));
+    g.lineBetween(px + Math.cos(a2)*(r-12), py + Math.sin(a2)*(r-12), px + Math.cos(a2)*(r+8), py + Math.sin(a2)*(r+8));
+
+    // Fade out
+    this.tweens.add({
+      targets: g, alpha: 0, duration: 250, ease: 'Power2',
+      onComplete: () => g.destroy()
+    });
+  }
+
   autoAttack() {
     if (this.gameOver || this.paused) return;
-    // Play attack animation
+    // Play attack animation + slash effect
     const dir = this.player.facing || 'down';
     this.player._attacking = true;
     this.player.play('knight-attack-' + dir, true);
     this.player.once('animationcomplete', () => {
       this.player._attacking = false;
     });
+    this.showSlashEffect();
     const minions = this.bossMinions.filter(m => m.alive);
     if (this.boss && this.boss.alive && minions.length > 0) {
       let nearest = null, minD = ATTACK_RADIUS;
@@ -718,6 +762,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
