@@ -330,7 +330,9 @@ class GameScene extends Phaser.Scene {
     if (this.boss && this.boss.alive) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
       if (d < ATTACK_RADIUS + 32) {
-        this.boss.hp -= 20 * this.player.stats.damage;
+        const dmgBoss = 20 * this.player.stats.damage;
+        this.boss.hp -= dmgBoss;
+        this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, '#ff8800');
         this.updateBossHPBar();
         this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
         const line = this.add.graphics().setDepth(7);
@@ -355,11 +357,25 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  showDamageNumber(x, y, amount, color) {
+    color = color || '#ffffff';
+    const t = this.add.text(x, y - 10, '-' + Math.round(amount), {
+      fontSize: '22px', fill: color, fontFamily: 'Arial Black',
+      stroke: '#000000', strokeThickness: 3
+    }).setOrigin(0.5).setDepth(15);
+    this.tweens.add({
+      targets: t, y: y - 60, alpha: 0, duration: 900,
+      ease: 'Power2',
+      onComplete: () => t.destroy()
+    });
+  }
+
   killPop(pop) {
     if (!pop.alive) return;
     pop.alive = false;
     this.killCount++;
     document.getElementById('h-kills').textContent = 'Kills: ' + this.killCount;
+    this.showDamageNumber(pop.x, pop.y, 20 * this.player.stats.damage, '#ffff44');
     this.addXP(XP_PER_POP);
     this.tweens.add({
       targets: pop, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
