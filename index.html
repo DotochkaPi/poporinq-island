@@ -165,7 +165,7 @@ class GameScene extends Phaser.Scene {
 
   preload() {
     this.load.spritesheet('knight', 'assets/knight.png', { frameWidth: 48, frameHeight: 48 });
-    this.load.spritesheet('pop',    'assets/slime_tiny.png', { frameWidth: 48, frameHeight: 48 });
+    this.load.spritesheet('pop',    'assets/slime_tiny.png', { frameWidth: 24, frameHeight: 24 });
     this.load.spritesheet('boss',   'assets/slime_big.png',  { frameWidth: 48, frameHeight: 48 });
   }
 
@@ -216,7 +216,7 @@ class GameScene extends Phaser.Scene {
     this.anims.create({ key: 'boss-attack', frames: this.anims.generateFrameNumbers('boss', { start: 50, end: 59 }), frameRate: 10, repeat: 0 });
 
     // --- PLAYER ---
-    this.player = this.add.sprite(ARENA_W / 2, ARENA_H / 2, 'knight').setOrigin(0.5).setDepth(5).setScale(1.2);
+    this.player = this.add.sprite(ARENA_W / 2, ARENA_H / 2, 'knight').setOrigin(0.5).setDepth(5).setScale(2.5);
     this.player.play('knight-idle-down');
     this.player.facing = 'down';
     this.player.hp = 100;
@@ -305,7 +305,7 @@ class GameScene extends Phaser.Scene {
     pop.setScale(0);
     pop.play('pop-walk');
     this.pops.add(pop);
-    this.tweens.add({ targets: pop, scaleX: 1, scaleY: 1, duration: 200 });
+    this.tweens.add({ targets: pop, scaleX: 2, scaleY: 2, duration: 200 });
     return pop;
   }
 
@@ -718,6 +718,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
