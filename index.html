@@ -363,10 +363,10 @@ class GameScene extends Phaser.Scene {
     return dy > 0 ? 'down' : 'up';
   }
 
-  showSlashEffect(angleRad, px, py) {
+  showSlashEffect(angleRad, hitX, hitY) {
     const r = ATTACK_RADIUS;
-    px = px !== undefined ? px : this.player.x;
-    py = py !== undefined ? py : this.player.y;
+    const px = hitX !== undefined ? hitX : this.player.x;
+    const py = hitY !== undefined ? hitY : this.player.y;
     const spread = Math.PI * 0.7;
 
     const g = this.add.graphics().setDepth(8);
@@ -779,6 +779,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
