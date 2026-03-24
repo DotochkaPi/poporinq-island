@@ -363,10 +363,10 @@ class GameScene extends Phaser.Scene {
     return dy > 0 ? 'down' : 'up';
   }
 
-  showSlashEffect(angleRad, hitX, hitY) {
+  showSlashEffect(angleRad) {
     const r = ATTACK_RADIUS;
-    const px = hitX !== undefined ? hitX : this.player.x;
-    const py = hitY !== undefined ? hitY : this.player.y;
+    const px = this.player.x;
+    const py = this.player.y;
     const spread = Math.PI * 0.7;
 
     const g = this.add.graphics().setDepth(8);
@@ -408,21 +408,18 @@ class GameScene extends Phaser.Scene {
     // Face toward nearest enemy (no separate attack anim — walk/idle continues)
     this.player.facing = attackDir;
 
-    // Snapshot attack origin — damage is calculated from HERE, not from player's future position
-    const hitX = this.player.x, hitY = this.player.y;
-
     const angleRad = target
-      ? Math.atan2(target.y - hitY, target.x - hitX)
+      ? Math.atan2(target.y - this.player.y, target.x - this.player.x)
       : Math.PI / 2;
-    this.showSlashEffect(angleRad, hitX, hitY);
+    this.showSlashEffect(angleRad);
 
     const minionsAlive = this.bossMinions.filter(m => m.alive);
     const bossShielded = this.boss && this.boss.alive && minionsAlive.length > 0;
 
-    // Splash: hit ALL pops in ATTACK_RADIUS from snapshot position
+    // Splash: hit ALL pops in ATTACK_RADIUS
     for (const pop of this.pops.getChildren()) {
       if (!pop.alive) continue;
-      const d = Phaser.Math.Distance.Between(hitX, hitY, pop.x, pop.y);
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, pop.x, pop.y);
       if (d <= ATTACK_RADIUS) {
         this.killPop(pop);
       }
@@ -430,9 +427,8 @@ class GameScene extends Phaser.Scene {
 
     // Boss: only damageable when all minions are dead
     if (this.boss && this.boss.alive) {
-      const dBoss = Phaser.Math.Distance.Between(hitX, hitY, this.boss.x, this.boss.y);
+      const dBoss = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
       if (bossShielded) {
-        // Only show immune reaction if player is actually close enough to hit
         if (dBoss <= ATTACK_RADIUS + 32) {
           this.tweens.add({ targets: this.boss, alpha: 0.6, duration: 80, yoyo: true });
           this.showDamageNumber(this.boss.x, this.boss.y - 20, 0, '#aaaaaa');
@@ -779,6 +775,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
