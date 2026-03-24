@@ -416,25 +416,34 @@ class GameScene extends Phaser.Scene {
     const minionsAlive = this.bossMinions.filter(m => m.alive);
     const bossShielded = this.boss && this.boss.alive && minionsAlive.length > 0;
 
-    // Splash: hit ALL pops in ATTACK_RADIUS
+    // Sector hit check: enemy must be within arc sector (angle ± spread/2) and range +10%
+    const HIT_RADIUS = ATTACK_RADIUS * 1.1;
+    const SPREAD = Math.PI * 0.7;
+    const inSector = (ex, ey) => {
+      const dx = ex - this.player.x, dy = ey - this.player.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d > HIT_RADIUS) return false;
+      const enemyAngle = Math.atan2(dy, dx);
+      let diff = enemyAngle - angleRad;
+      // Normalize diff to [-PI, PI]
+      while (diff > Math.PI)  diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      return Math.abs(diff) <= SPREAD / 2;
+    };
+
+    // Splash: hit ALL pops in sector
     for (const pop of this.pops.getChildren()) {
       if (!pop.alive) continue;
-      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, pop.x, pop.y);
-      if (d <= ATTACK_RADIUS) {
-        this.killPop(pop);
-      }
+      if (inSector(pop.x, pop.y)) this.killPop(pop);
     }
 
     // Boss: only damageable when all minions are dead
     if (this.boss && this.boss.alive) {
-      const dBoss = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
-      if (bossShielded) {
-        if (dBoss <= ATTACK_RADIUS + 32) {
+      if (inSector(this.boss.x, this.boss.y)) {
+        if (bossShielded) {
           this.tweens.add({ targets: this.boss, alpha: 0.6, duration: 80, yoyo: true });
           this.showDamageNumber(this.boss.x, this.boss.y - 20, 0, '#aaaaaa');
-        }
-      } else {
-        if (dBoss <= ATTACK_RADIUS + 32) {
+        } else {
           const dmgBoss = 20 * this.player.stats.damage;
           this.boss.hp -= dmgBoss;
           this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, '#ff8800');
@@ -775,6 +784,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
