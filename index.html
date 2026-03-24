@@ -430,12 +430,15 @@ class GameScene extends Phaser.Scene {
 
     // Boss: only damageable when all minions are dead
     if (this.boss && this.boss.alive) {
+      const dBoss = Phaser.Math.Distance.Between(hitX, hitY, this.boss.x, this.boss.y);
       if (bossShielded) {
-        this.tweens.add({ targets: this.boss, alpha: 0.6, duration: 80, yoyo: true });
-        this.showDamageNumber(this.boss.x, this.boss.y - 20, 0, '#aaaaaa');
+        // Only show immune reaction if player is actually close enough to hit
+        if (dBoss <= ATTACK_RADIUS + 32) {
+          this.tweens.add({ targets: this.boss, alpha: 0.6, duration: 80, yoyo: true });
+          this.showDamageNumber(this.boss.x, this.boss.y - 20, 0, '#aaaaaa');
+        }
       } else {
-        const d = Phaser.Math.Distance.Between(hitX, hitY, this.boss.x, this.boss.y);
-        if (d <= ATTACK_RADIUS + 32) {
+        if (dBoss <= ATTACK_RADIUS + 32) {
           const dmgBoss = 20 * this.player.stats.damage;
           this.boss.hp -= dmgBoss;
           this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, '#ff8800');
@@ -776,6 +779,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
