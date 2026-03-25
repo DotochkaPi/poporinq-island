@@ -127,6 +127,30 @@ canvas { display: block; }
   animation: pulse 1.5s ease-in-out infinite;
 }
 #start-btn:hover { color: #88ffaa; border-color: #88ffaa; background: #142814; }
+
+#pause-btn {
+  position: fixed; top: 2%; right: 2%;
+  width: 10vmin; height: 10vmin; font-size: 5vmin;
+  background: rgba(0,0,0,0.5); border: 2px solid #556655;
+  border-radius: 8px; color: #aaa; cursor: pointer;
+  z-index: 15; display: none; pointer-events: auto;
+  line-height: 1;
+}
+#pause-btn:hover { border-color: #88ffaa; color: #fff; }
+
+#pause-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7); display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  z-index: 20;
+}
+#pause-overlay h2 { font-size: 10vmin; color: #ffdd44; margin-bottom: 4vmin; }
+#resume-btn {
+  padding: 2vmin 6vmin; font-size: 5vmin; font-weight: bold;
+  color: #44ff88; background: #0a1f0a; border: 3px solid #44ff88;
+  border-radius: 10px; cursor: pointer;
+}
+#resume-btn:hover { color: #88ffaa; border-color: #88ffaa; }
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 10px #44ff8866; }
   50%       { box-shadow: 0 0 25px #44ff88cc; }
@@ -198,6 +222,13 @@ canvas { display: block; }
   <h2>LEVEL UP!</h2>
   <p>Choose upgrade:</p>
   <div id="levelup-cards"></div>
+</div>
+
+<button id="pause-btn" onclick="window._togglePause && window._togglePause()">⏸</button>
+
+<div id="pause-overlay">
+  <h2>PAUSE</h2>
+  <button id="resume-btn" onclick="window._togglePause && window._togglePause()">[ RESUME ]</button>
 </div>
 
 <!-- Start screen -->
@@ -416,10 +447,21 @@ class GameScene extends Phaser.Scene {
     // --- HUD ---
     this.createHUD();
 
+    // --- PAUSE ---
+    window._togglePause = () => {
+      if (this.gameOver) return;
+      this.paused = !this.paused;
+      document.getElementById('pause-btn').textContent = this.paused ? '▶' : '⏸';
+      document.getElementById('pause-overlay').style.display = this.paused ? 'flex' : 'none';
+    };
+    // ESC key
+    this.input.keyboard.on('keydown-ESC', () => { window._togglePause && window._togglePause(); });
+
     // --- START ---
     this.paused = true;
     window._startGame = () => {
       this.paused = false;
+      document.getElementById('pause-btn').style.display = 'block';
       this.startWave();
     };
   }
@@ -1073,6 +1115,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
