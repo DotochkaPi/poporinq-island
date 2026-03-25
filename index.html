@@ -101,6 +101,31 @@ canvas { display: block; }
   cursor: pointer;
 }
 #restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
+
+#relic-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.75); display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  z-index: 25; pointer-events: auto;
+}
+.relic-card {
+  min-width: 55vw; max-width: 85vw; padding: 4vmin 5vmin;
+  border-radius: 12px; border-width: 3px; border-style: solid;
+  text-align: center; position: relative;
+  animation: relicPop 0.3s ease-out;
+}
+@keyframes relicPop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.relic-quality { font-size: 3vmin; font-weight: bold; letter-spacing: 2px; margin-bottom: 1.5vmin; text-transform: uppercase; }
+.relic-name    { font-size: 6vmin; font-weight: bold; margin-bottom: 1vmin; color: #fff; text-shadow: 0 0 12px currentColor; }
+.relic-flavor  { font-size: 2.8vmin; color: #ccc; margin-bottom: 3vmin; font-style: italic; }
+.relic-btn {
+  padding: 1.5vmin 5vmin; font-size: 3.5vmin; font-weight: bold;
+  border-radius: 8px; border: 2px solid; cursor: pointer;
+  background: rgba(0,0,0,0.4);
+}
 </style>
 </head>
 <body>
@@ -142,6 +167,16 @@ canvas { display: block; }
   <div id="levelup-cards"></div>
 </div>
 
+<!-- Relic overlay -->
+<div id="relic-overlay">
+  <div class="relic-card" id="relic-card">
+    <div class="relic-quality" id="relic-quality"></div>
+    <div class="relic-name" id="relic-name"></div>
+    <div class="relic-flavor" id="relic-flavor"></div>
+    <button class="relic-btn" id="relic-btn" onclick="window._relicClose && window._relicClose()">Забрать</button>
+  </div>
+</div>
+
 <!-- Game over overlay -->
 <div id="gameover-overlay">
   <h1>GAME OVER</h1>
@@ -168,6 +203,56 @@ const XP_PER_POP = 10;
 const XP_PER_BOSS = 100;
 const BASE_XP = 50;
 const WAVE_COUNTS = [10, 15, 20, 25, 30];
+
+// ==================== RELICS ====================
+const RELICS = {
+  common: {
+    label: 'Common', color: '#aaaaaa', bg: '#1a1a1a', chance: 0.60,
+    items: [
+      'Ржавый гвоздь', 'Мятая фляжка', 'Обломок щита', 'Треснутая пряжка',
+      'Щепка от весла', 'Горсть островного песка', 'Потёртый камень',
+      'Лоскут знамени', 'Сломанная стрела', 'Кусок старой верёвки'
+    ]
+  },
+  uncommon: {
+    label: 'Uncommon', color: '#1eff00', bg: '#0a1f0a', chance: 0.25,
+    items: [
+      'Зуб Попоринга', 'Склизкий шарик', 'Перо морской птицы', 'Осколок доспеха',
+      'Медная монета острова', 'Засушенный коралл', 'Кожаный ремешок рыцаря',
+      'Морская ракушка-свисток', 'Засмолённый комок', 'Рог маленького Попоринга'
+    ]
+  },
+  rare: {
+    label: 'Rare', color: '#0070dd', bg: '#0a0a20', chance: 0.10,
+    items: [
+      'Глаз Попоринга', 'Синяя жемчужина', 'Осколок меча предка',
+      'Перчатка утонувшего рыцаря', 'Склянка с туманом острова',
+      'Зачарованный булыжник', 'Карта неизведанной части острова',
+      'Клешня краба-стражника', 'Серебряная монета со странным знаком',
+      'Фрагмент старинной брони'
+    ]
+  },
+  epic: {
+    label: 'Epic', color: '#a335ee', bg: '#150a20', chance: 0.049,
+    items: [
+      'Сердце Мини-Попоринга', 'Пурпурный кристалл острова', 'Кулон королевы Попорингов',
+      'Обломок трона', 'Призрачное лезвие', 'Тёмная жемчужина бездны',
+      'Печать Острова', 'Реликвия забытого ордена', 'Рог Босс-Попоринга',
+      'Амулет проклятого рыцаря'
+    ]
+  },
+  legendary: {
+    label: 'Legendary', color: '#ff8000', bg: '#1f0a00', chance: 0.001,
+    items: [
+      'Сердце Попоринга', 'Вечный клинок острова', 'Корона Острова',
+      'Слеза Попоринг-бога', 'Душа первого Попоринга', 'Золотой зуб Великого Босса',
+      'Пламя Острова', 'Последний рыцарь', 'Реликвия Безымянного',
+      'Ядро Попоринг-Матери'
+    ]
+  }
+};
+
+const RELIC_ORDER = ['legendary', 'epic', 'rare', 'uncommon', 'common'];
 
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -243,6 +328,7 @@ class GameScene extends Phaser.Scene {
 
     // --- GROUPS & STATE ---
     this.pops = this.add.group();
+    this.collectedRelics = new Set();
     this.waveNum = 0;
     this.waveState = 'spawning';
     this.popToSpawn = 0;
@@ -528,8 +614,8 @@ class GameScene extends Phaser.Scene {
     this.addXP(XP_PER_BOSS);
     this.showMsg('BOSS DEFEATED!');
     this.time.delayedCall(800, () => { if (!this.gameOver) this.dropEnchant(); });
+    this.time.delayedCall(1400, () => { if (!this.gameOver) this.dropRelic(); });
     this.waveState = 'intermission';
-    this.time.delayedCall(3500, () => { if (!this.gameOver) this.startWave(); });
   }
 
   // ==================== XP / LEVEL ====================
@@ -603,6 +689,56 @@ class GameScene extends Phaser.Scene {
     else if (slot.stat === 'moveSpeed')  this.player.stats.moveSpeed += slot.bonus;
     this.updateGearHUD();
     this.showMsg(slot.name + ' +' + lvl, slot.desc);
+  }
+
+  dropRelic() {
+    // Roll quality
+    const roll = Math.random();
+    let cumulative = 0;
+    let qualityKey = 'common';
+    for (const key of RELIC_ORDER) {
+      cumulative += RELICS[key].chance;
+      if (roll <= cumulative) { qualityKey = key; break; }
+    }
+    const quality = RELICS[qualityKey];
+
+    // Pick random relic from this quality
+    const shuffled = Phaser.Utils.Array.Shuffle(quality.items.slice());
+    const pick = shuffled.find(name => !this.collectedRelics.has(name));
+
+    if (!pick) {
+      // All relics of this quality already collected
+      this.showMsg('Реликвия уже в коллекции', 'Восстановлено здоровье');
+      this.player.hp = this.player.stats.maxHp;
+      document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
+      this.updateHPBar();
+      this.time.delayedCall(2800, () => { if (!this.gameOver) this.startWave(); });
+      return;
+    }
+
+    this.collectedRelics.add(pick);
+    this.paused = true;
+
+    // Show relic overlay
+    const card = document.getElementById('relic-card');
+    card.style.background = quality.bg;
+    card.style.borderColor = quality.color;
+    card.style.boxShadow = '0 0 24px ' + quality.color + '88';
+    document.getElementById('relic-quality').style.color = quality.color;
+    document.getElementById('relic-quality').textContent = '✦ ' + quality.label + ' ✦';
+    document.getElementById('relic-name').textContent = pick;
+    document.getElementById('relic-name').style.textShadow = '0 0 20px ' + quality.color;
+    document.getElementById('relic-flavor').textContent = 'Реликвий собрано: ' + this.collectedRelics.size;
+    document.getElementById('relic-btn').style.color = quality.color;
+    document.getElementById('relic-btn').style.borderColor = quality.color;
+    document.getElementById('relic-overlay').style.display = 'flex';
+
+    const scene = this;
+    window._relicClose = () => {
+      document.getElementById('relic-overlay').style.display = 'none';
+      scene.paused = false;
+      scene.time.delayedCall(500, () => { if (!scene.gameOver) scene.startWave(); });
+    };
   }
 
   updateGearHUD() {
@@ -828,6 +964,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
