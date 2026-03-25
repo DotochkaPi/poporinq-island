@@ -101,6 +101,9 @@ canvas { display: block; }
   cursor: pointer;
 }
 #restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
+#go-relics { font-size: 2.8vmin; margin: 1.5vmin 2vmin; text-align: left; max-height: 25vh; overflow-y: auto; }
+#go-relics .relic-line { margin: 0.4vmin 0; }
+#go-relics-title { font-size: 3vmin; color: #ffdd44; margin-top: 2vmin; }
 
 #relic-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -184,6 +187,8 @@ canvas { display: block; }
   <div class="stat" id="go-wave"></div>
   <div class="stat" id="go-level"></div>
   <div class="gear" id="go-gear"></div>
+  <div id="go-relics-title"></div>
+  <div id="go-relics"></div>
   <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
 </div>
 
@@ -821,6 +826,27 @@ class GameScene extends Phaser.Scene {
     document.getElementById('go-wave').textContent   = 'Wave: '   + this.waveNum;
     document.getElementById('go-level').textContent  = 'Level: '  + this.player.level;
     document.getElementById('go-gear').textContent   = gs;
+
+    // Relics list
+    const relicsEl = document.getElementById('go-relics');
+    const relicsTitleEl = document.getElementById('go-relics-title');
+    if (this.collectedRelics.size > 0) {
+      relicsTitleEl.textContent = '✦ Реликвии (' + this.collectedRelics.size + ')';
+      // Build quality map for colors
+      const qualityMap = {};
+      for (const [qKey, qData] of Object.entries(RELICS)) {
+        for (const name of qData.items) qualityMap[name] = qData;
+      }
+      relicsEl.innerHTML = [...this.collectedRelics].map(name => {
+        const q = qualityMap[name] || { color: '#fff', label: '' };
+        return '<div class="relic-line" style="color:' + q.color + '">['
+          + q.label + '] ' + name + '</div>';
+      }).join('');
+    } else {
+      relicsTitleEl.textContent = '';
+      relicsEl.innerHTML = '';
+    }
+
     document.getElementById('gameover-overlay').style.display = 'flex';
   }
 
@@ -964,6 +990,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
