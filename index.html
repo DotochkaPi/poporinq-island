@@ -210,9 +210,19 @@ const BASE_XP = 50;
 // Wave count: n = round(10 + (wave-1)*7 + (wave-1)^1.4)
 
 // ==================== RELICS ====================
+const RELIC_STATS = [
+  { key: 'damage',      label: 'урон',           apply: (s, v) => { s.damage      += v; } },
+  { key: 'attackSpeed', label: 'скорость атаки',  apply: (s, v) => { s.attackSpeed = Math.max(0.3, s.attackSpeed - v * 0.5); } },
+  { key: 'defense',     label: 'защита',          apply: (s, v) => { s.defense     += v * 0.5; } },
+  { key: 'maxHp',       label: 'макс HP',         apply: (s, v) => { s.maxHp       += Math.round(v * 5); } },
+  { key: 'moveSpeed',   label: 'скорость',        apply: (s, v) => { s.moveSpeed   += v * 0.5; } },
+  { key: 'critChance',  label: 'шанс крита',      apply: (s, v) => { s.critChance   = Math.min(1.0, s.critChance + v); } },
+  { key: 'range',       label: 'ренж атаки',      apply: (s, v) => { ATTACK_RADIUS_MULT += v * 0.5; } },
+];
+
 const RELICS = {
   common: {
-    label: 'Common', color: '#aaaaaa', bg: '#1a1a1a', chance: 0.60,
+    label: 'Common', color: '#aaaaaa', bg: '#1a1a1a', chance: 0.60, bonus: 0.02,
     items: [
       'Ржавый гвоздь', 'Мятая фляжка', 'Обломок щита', 'Треснутая пряжка',
       'Щепка от весла', 'Горсть островного песка', 'Потёртый камень',
@@ -220,7 +230,7 @@ const RELICS = {
     ]
   },
   uncommon: {
-    label: 'Uncommon', color: '#1eff00', bg: '#0a1f0a', chance: 0.25,
+    label: 'Uncommon', color: '#1eff00', bg: '#0a1f0a', chance: 0.25, bonus: 0.04,
     items: [
       'Зуб Попоринга', 'Склизкий шарик', 'Перо морской птицы', 'Осколок доспеха',
       'Медная монета острова', 'Засушенный коралл', 'Кожаный ремешок рыцаря',
@@ -228,7 +238,7 @@ const RELICS = {
     ]
   },
   rare: {
-    label: 'Rare', color: '#0070dd', bg: '#0a0a20', chance: 0.10,
+    label: 'Rare', color: '#0070dd', bg: '#0a0a20', chance: 0.10, bonus: 0.07,
     items: [
       'Глаз Попоринга', 'Синяя жемчужина', 'Осколок меча предка',
       'Перчатка утонувшего рыцаря', 'Склянка с туманом острова',
@@ -238,7 +248,7 @@ const RELICS = {
     ]
   },
   epic: {
-    label: 'Epic', color: '#a335ee', bg: '#150a20', chance: 0.049,
+    label: 'Epic', color: '#a335ee', bg: '#150a20', chance: 0.049, bonus: 0.12,
     items: [
       'Сердце Мини-Попоринга', 'Пурпурный кристалл острова', 'Кулон королевы Попорингов',
       'Обломок трона', 'Призрачное лезвие', 'Тёмная жемчужина бездны',
@@ -247,7 +257,7 @@ const RELICS = {
     ]
   },
   legendary: {
-    label: 'Legendary', color: '#ff8000', bg: '#1f0a00', chance: 0.001,
+    label: 'Legendary', color: '#ff8000', bg: '#1f0a00', chance: 0.001, bonus: 0.20,
     items: [
       'Сердце Попоринга', 'Вечный клинок острова', 'Корона Острова',
       'Слеза Попоринг-бога', 'Душа первого Попоринга', 'Золотой зуб Великого Босса',
@@ -333,7 +343,7 @@ class GameScene extends Phaser.Scene {
 
     // --- GROUPS & STATE ---
     this.pops = this.add.group();
-    this.collectedRelics = new Set();
+    this.collectedRelics = new Map(); // name -> {quality, bonusText}
     this.waveNum = 0;
     this.waveState = 'spawning';
     this.popToSpawn = 0;
@@ -711,6 +721,7 @@ class GameScene extends Phaser.Scene {
     const shuffled = Phaser.Utils.Array.Shuffle(quality.items.slice());
     const pick = shuffled.find(name => !this.collectedRelics.has(name));
 
+
     if (!pick) {
       // All relics of this quality already collected
       this.showMsg('Реликвия уже в коллекции', 'Восстановлено здоровье');
@@ -721,7 +732,16 @@ class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.collectedRelics.add(pick);
+    this.collectedRelics.set(pick, { quality, bonusText: '' }); // bonusText filled below
+
+    // Apply random stat bonus
+    const stat = RELIC_STATS[Phaser.Math.Between(0, RELIC_STATS.length - 1)];
+    const bonusVal = quality.bonus;
+    stat.apply(this.player.stats, bonusVal);
+    // Format bonus display
+    const pct = Math.round(bonusVal * 100);
+    const bonusText = '+' + pct + '% ' + stat.label;
+
     this.paused = true;
 
     // Show relic overlay
@@ -733,7 +753,8 @@ class GameScene extends Phaser.Scene {
     document.getElementById('relic-quality').textContent = '✦ ' + quality.label + ' ✦';
     document.getElementById('relic-name').textContent = pick;
     document.getElementById('relic-name').style.textShadow = '0 0 20px ' + quality.color;
-    document.getElementById('relic-flavor').textContent = 'Реликвий собрано: ' + this.collectedRelics.size;
+    this.collectedRelics.get(pick).bonusText = bonusText;
+    document.getElementById('relic-flavor').textContent = bonusText + '  |  Реликвий: ' + this.collectedRelics.size;
     document.getElementById('relic-btn').style.color = quality.color;
     document.getElementById('relic-btn').style.borderColor = quality.color;
     document.getElementById('relic-overlay').style.display = 'flex';
@@ -832,15 +853,10 @@ class GameScene extends Phaser.Scene {
     const relicsTitleEl = document.getElementById('go-relics-title');
     if (this.collectedRelics.size > 0) {
       relicsTitleEl.textContent = '✦ Реликвии (' + this.collectedRelics.size + ')';
-      // Build quality map for colors
-      const qualityMap = {};
-      for (const [qKey, qData] of Object.entries(RELICS)) {
-        for (const name of qData.items) qualityMap[name] = qData;
-      }
-      relicsEl.innerHTML = [...this.collectedRelics].map(name => {
-        const q = qualityMap[name] || { color: '#fff', label: '' };
-        return '<div class="relic-line" style="color:' + q.color + '">['
-          + q.label + '] ' + name + '</div>';
+      relicsEl.innerHTML = [...this.collectedRelics.entries()].map(([name, data]) => {
+        const q = data.quality || { color: '#fff', label: '' };
+        return '<div class="relic-line" style="color:' + q.color + '">[' + q.label + '] '
+          + name + ' <span style="color:#888;font-size:2.4vmin">(' + data.bonusText + ')</span></div>';
       }).join('');
     } else {
       relicsTitleEl.textContent = '';
@@ -990,6 +1006,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
