@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Poporinq Island</title>
+<title>Poporing Island</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #0a1a0a; }
@@ -91,6 +91,7 @@ canvas { display: block; }
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 20; pointer-events: auto;
 }
+#gameover-overlay .game-title { font-size: 4vmin; color: #ffdd44; margin-bottom: 1vmin; letter-spacing: 3px; opacity: 0.8; }
 #gameover-overlay h1 { font-size: 10vmin; color: #ff4444; margin-bottom: 2vmin; }
 #gameover-overlay .stat { font-size: 4vmin; color: #fff; margin: 0.5vmin; }
 #gameover-overlay .gear { font-size: 3.5vmin; color: #ffdd44; margin: 1.5vmin; }
@@ -101,6 +102,13 @@ canvas { display: block; }
   cursor: pointer;
 }
 #restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
+#share-btn {
+  margin-top: 1.5vmin; padding: 1.5vmin 4vmin;
+  font-size: 3.5vmin; font-weight: bold; color: #88ccff;
+  background: #0a1a2a; border: 2px solid #88ccff; border-radius: 8px;
+  cursor: pointer;
+}
+#share-btn:hover { color: #aaddff; border-color: #aaddff; }
 #go-relics { font-size: 2.8vmin; margin: 1.5vmin 2vmin; text-align: left; max-height: 25vh; overflow-y: auto; }
 #go-relics .relic-line { margin: 0.4vmin 0; }
 #go-relics-title { font-size: 3vmin; color: #ffdd44; margin-top: 2vmin; }
@@ -182,6 +190,7 @@ canvas { display: block; }
 
 <!-- Game over overlay -->
 <div id="gameover-overlay">
+  <div class="game-title">POPORING ISLAND</div>
   <h1>GAME OVER</h1>
   <div class="stat" id="go-kills"></div>
   <div class="stat" id="go-wave"></div>
@@ -189,6 +198,7 @@ canvas { display: block; }
   <div class="gear" id="go-gear"></div>
   <div id="go-relics-title"></div>
   <div id="go-relics"></div>
+  <button id="share-btn" onclick="window._shareResult && window._shareResult()">[ SHARE ]</button>
   <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
 </div>
 
@@ -864,6 +874,29 @@ class GameScene extends Phaser.Scene {
     }
 
     document.getElementById('gameover-overlay').style.display = 'flex';
+
+    // Share handler
+    const relicLines = [...this.collectedRelics.entries()].map(([name, data]) =>
+      '  ' + (data.quality ? '[' + data.quality.label + '] ' : '') + name + ' (' + data.bonusText + ')'
+    ).join('\n');
+    const shareText = '⚔️ Poporing Island\n'
+      + '🌊 Волна: ' + this.waveNum + '\n'
+      + '💀 Убийств: ' + this.killCount + '\n'
+      + '⭐ Уровень: ' + this.player.level + '\n'
+      + (this.collectedRelics.size > 0 ? '✦ Реликвии (' + this.collectedRelics.size + '):\n' + relicLines + '\n' : '')
+      + '🔗 https://dotochkapi.github.io/poporinq-island/';
+
+    window._shareResult = async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Poporing Island', text: shareText });
+        } catch(e) {}
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        document.getElementById('share-btn').textContent = '[ СКОПИРОВАНО! ]';
+        setTimeout(() => { document.getElementById('share-btn').textContent = '[ SHARE ]'; }, 2000);
+      }
+    };
   }
 
   // ==================== JOYSTICK ====================
@@ -1006,6 +1039,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
