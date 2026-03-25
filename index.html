@@ -303,6 +303,11 @@ class GameScene extends Phaser.Scene {
     else                 { x = m; y = Phaser.Math.Between(m, ARENA_H - m); }
     const pop = this.add.sprite(x, y, 'pop').setOrigin(0.5).setDepth(4);
     pop.alive = true; pop.isBossMinion = boss;
+    // Scale hp and speed per wave
+    const waveScale = this.waveNum - 1;
+    pop.maxHp = Math.round(20 * Math.pow(1.2, waveScale)); // +20% hp per wave
+    pop.hp = pop.maxHp;
+    pop.speed = POP_SPEED * Math.pow(1.05, waveScale);     // +5% speed per wave
     pop.setScale(0);
     pop.play('pop-walk');
     this.pops.add(pop);
@@ -482,12 +487,15 @@ class GameScene extends Phaser.Scene {
 
   killPop(pop) {
     if (!pop.alive) return;
+    const isCrit = this.rollCrit();
+    const dmg = this.rollDamage() * (isCrit ? 2 : 1);
+    pop.hp = (pop.hp || 1) - dmg;
+    this.showDamageNumber(pop.x, pop.y, dmg, isCrit ? '#ff4400' : '#ffff44');
+    if (pop.hp > 0) return; // still alive
+
     pop.alive = false;
     this.killCount++;
     document.getElementById('h-kills').textContent = 'Kills: ' + this.killCount;
-    const isCrit = this.rollCrit();
-    const dmg = this.rollDamage() * (isCrit ? 2 : 1);
-    this.showDamageNumber(pop.x, pop.y, dmg, isCrit ? '#ff4400' : '#ffff44');
     this.addXP(XP_PER_POP);
     this.tweens.add({
       targets: pop, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
@@ -741,8 +749,8 @@ class GameScene extends Phaser.Scene {
       const dx = this.player.x - pop.x, dy = this.player.y - pop.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
       if (dist > 18) {
-        pop.x += (dx/dist) * POP_SPEED * dt;
-        pop.y += (dy/dist) * POP_SPEED * dt;
+        pop.x += (dx/dist) * (pop.speed || POP_SPEED) * dt;
+        pop.y += (dy/dist) * (pop.speed || POP_SPEED) * dt;
         if (pop.anims.currentAnim && pop.anims.currentAnim.key !== 'pop-walk') pop.play('pop-walk', true);
       } else {
         if (pop.anims.currentAnim && pop.anims.currentAnim.key !== 'pop-attack') pop.play('pop-attack', true);
@@ -804,6 +812,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
