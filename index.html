@@ -22,7 +22,7 @@ canvas { display: block; }
 }
 #hud-top .row { font-size: 4vmin; line-height: 1.5; }
 #hud-top .lvl { font-size: 3vmin; color: #ffdd44; margin-top: 2px; }
-.bar-wrap { width: 38vw; height: 1.2vmin; background: #111; border-radius: 2px; margin: 2px 0; }
+.bar-wrap { width: 19vw; height: 0.8vmin; background: #111; border-radius: 2px; margin: 1px 0; }
 .bar-fill { height: 100%; border-radius: 2px; transition: width 0.15s; }
 #hp-fill  { background: #44ff44; }
 #xp-fill  { background: #ffdd00; }
@@ -56,7 +56,14 @@ canvas { display: block; }
   font-size: 6vmin; font-weight: bold; color: #ffdd44;
   text-shadow: -2px -2px 0 #000, 2px 2px 0 #000;
   pointer-events: none; white-space: nowrap;
-  transition: opacity 0.3s;
+  transition: opacity 0.3s; text-align: center;
+}
+#msg-sub {
+  position: absolute; top: 26%; left: 50%; transform: translateX(-50%);
+  font-size: 3.5vmin; font-weight: normal; color: #aaddff;
+  text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
+  pointer-events: none; white-space: nowrap;
+  transition: opacity 0.3s; text-align: center;
 }
 
 #levelup-overlay {
@@ -125,6 +132,7 @@ canvas { display: block; }
   </div>
 
   <div id="msg" style="opacity:0"></div>
+  <div id="msg-sub" style="opacity:0"></div>
 </div>
 
 <!-- Level up overlay -->
@@ -580,11 +588,11 @@ class GameScene extends Phaser.Scene {
 
   dropEnchant() {
     const SLOTS = [
-      { key: 'helm',   name: 'HELM',   stat: 'defense',    bonus: 0.5 },
-      { key: 'sword',  name: 'SWORD',  stat: 'damage',     bonus: 0.15 },
-      { key: 'armor',  name: 'ARMOR',  stat: 'defense',    bonus: 0.8 },
-      { key: 'gloves', name: 'GLOVES', stat: 'attackSpeed',bonus: 0.1 },
-      { key: 'boots',  name: 'BOOTS',  stat: 'moveSpeed',  bonus: 0.1 }
+      { key: 'helm',   name: 'HELM',   stat: 'defense',    bonus: 0.5,  desc: '+0.5 defense' },
+      { key: 'sword',  name: 'SWORD',  stat: 'damage',     bonus: 0.15, desc: '+15% damage' },
+      { key: 'armor',  name: 'ARMOR',  stat: 'defense',    bonus: 0.8,  desc: '+0.8 defense' },
+      { key: 'gloves', name: 'GLOVES', stat: 'attackSpeed',bonus: 0.1,  desc: '-10% attack cd' },
+      { key: 'boots',  name: 'BOOTS',  stat: 'moveSpeed',  bonus: 0.1,  desc: '+10% move speed' }
     ];
     const slot = SLOTS[Phaser.Math.Between(0, 4)];
     this.player.gear[slot.key]++;
@@ -594,7 +602,7 @@ class GameScene extends Phaser.Scene {
     else if (slot.stat === 'defense')    this.player.stats.defense   += slot.bonus;
     else if (slot.stat === 'moveSpeed')  this.player.stats.moveSpeed += slot.bonus;
     this.updateGearHUD();
-    this.showMsg(slot.name + ' +' + lvl);
+    this.showMsg(slot.name + ' +' + lvl, slot.desc);
   }
 
   updateGearHUD() {
@@ -649,13 +657,21 @@ class GameScene extends Phaser.Scene {
 
   // ==================== MESSAGES (HTML) ====================
 
-  showMsg(text) {
+  showMsg(text, sub) {
     const el = document.getElementById('msg');
+    const elSub = document.getElementById('msg-sub');
     if (!el) return;
     el.textContent = text;
     el.style.opacity = '1';
+    if (elSub) {
+      elSub.textContent = sub || '';
+      elSub.style.opacity = sub ? '1' : '0';
+    }
     clearTimeout(this._msgTimer);
-    this._msgTimer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
+    this._msgTimer = setTimeout(() => {
+      el.style.opacity = '0';
+      if (elSub) elSub.style.opacity = '0';
+    }, 2500);
   }
 
   // ==================== GAME OVER (HTML) ====================
@@ -812,6 +828,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
