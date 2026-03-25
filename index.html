@@ -404,7 +404,7 @@ class GameScene extends Phaser.Scene {
     this.player.level = 1;
     this.player.xp = 0;
     this.player.xpToNext = BASE_XP;
-    this.player.stats = { damage: 1.0, attackSpeed: 1.0, defense: 0, maxHp: 100, moveSpeed: 1.0, critChance: 0 };
+    this.player.stats = { damage: 1.0, attackSpeed: 1.0, defense: 0, maxHp: 100, moveSpeed: 1.0, critChance: 0, lifeSteal: 0.03 };
     this.player.gear = { helm: 0, sword: 0, armor: 0, gloves: 0, boots: 0 };
 
     // --- CAMERA ---
@@ -651,6 +651,7 @@ class GameScene extends Phaser.Scene {
           this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, isCritBoss ? '#ff4400' : '#ff8800');
           this.updateBossHPBar();
           this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
+          this.applyLifeSteal(dmgBoss);
           if (this.boss.hp <= 0) this.killBoss();
         }
       }
@@ -668,6 +669,23 @@ class GameScene extends Phaser.Scene {
       ease: 'Power2',
       onComplete: () => t.destroy()
     });
+  }
+
+  applyLifeSteal(dmg) {
+    const heal = dmg * this.player.stats.lifeSteal;
+    if (heal <= 0) return;
+    this.player.hp = Math.min(this.player.stats.maxHp, this.player.hp + heal);
+    document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
+    this.updateHPBar();
+    // Show green number only if heal >= 3
+    if (heal >= 3) {
+      const t = this.add.text(this.player.x + Phaser.Math.Between(-15, 15), this.player.y - 20,
+        '+' + Math.round(heal), {
+          fontSize: '18px', fill: '#44ff88', fontFamily: 'Arial Black',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(15);
+      this.tweens.add({ targets: t, y: t.y - 35, alpha: 0, duration: 700, ease: 'Power2', onComplete: () => t.destroy() });
+    }
   }
 
   rollCrit() {
@@ -691,6 +709,8 @@ class GameScene extends Phaser.Scene {
     pop.alive = false;
     this.killCount++;
     document.getElementById('h-kills').textContent = 'Kills: ' + this.killCount;
+    // Lifesteal on kill
+    this.applyLifeSteal(dmg);
     this.addXP(XP_PER_POP);
     this.tweens.add({
       targets: pop, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
@@ -750,8 +770,9 @@ class GameScene extends Phaser.Scene {
         this.updateHPBar();
       }},
       { name: 'MOVE',   desc: '+15% speed',      apply: () => { this.player.stats.moveSpeed *= 1.15; } },
-      { name: 'CRIT%',  desc: '+5% crit chance (crit=x2 dmg)', apply: () => { this.player.stats.critChance = Math.min(1.0, this.player.stats.critChance + 0.05); } },
-      { name: 'RANGE',  desc: '+5% attack range', apply: () => { ATTACK_RADIUS_MULT = ATTACK_RADIUS_MULT * 1.05; } }
+      { name: 'CRIT%',     desc: '+5% crit chance (crit=x2 dmg)', apply: () => { this.player.stats.critChance = Math.min(1.0, this.player.stats.critChance + 0.05); } },
+      { name: 'RANGE',     desc: '+5% attack range',  apply: () => { ATTACK_RADIUS_MULT = ATTACK_RADIUS_MULT * 1.05; } },
+      { name: 'LIFESTEAL', desc: '+3% lifesteal',     apply: () => { this.player.stats.lifeSteal = Math.min(0.30, this.player.stats.lifeSteal + 0.03); } }
     ];
     const chosen = Phaser.Utils.Array.Shuffle(opts.slice()).slice(0, 3);
     const container = document.getElementById('levelup-cards');
@@ -1115,6 +1136,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
