@@ -152,6 +152,7 @@ const ARENA_H = 1200;
 const PLAYER_SPEED = 200;
 const POP_SPEED = 80;
 const ATTACK_RADIUS = 69;
+let ATTACK_RADIUS_MULT = 1.0;
 const ATTACK_INTERVAL = 1500;
 const POP_DAMAGE = 10;
 const POP_DAMAGE_COOLDOWN = 1000;
@@ -224,7 +225,7 @@ class GameScene extends Phaser.Scene {
     this.player.level = 1;
     this.player.xp = 0;
     this.player.xpToNext = BASE_XP;
-    this.player.stats = { damage: 1.0, attackSpeed: 1.0, defense: 0, maxHp: 100, moveSpeed: 1.0 };
+    this.player.stats = { damage: 1.0, attackSpeed: 1.0, defense: 0, maxHp: 100, moveSpeed: 1.0, critChance: 0, critDamage: 1.0 };
     this.player.gear = { helm: 0, sword: 0, armor: 0, gloves: 0, boots: 0 };
 
     // --- CAMERA ---
@@ -364,7 +365,7 @@ class GameScene extends Phaser.Scene {
   }
 
   showSlashEffect(angleRad) {
-    const r = ATTACK_RADIUS;
+    const r = ATTACK_RADIUS * ATTACK_RADIUS_MULT;
     const px = this.player.x;
     const py = this.player.y;
     const spread = Math.PI * 0.7;
@@ -417,7 +418,7 @@ class GameScene extends Phaser.Scene {
     const bossShielded = this.boss && this.boss.alive && minionsAlive.length > 0;
 
     // Sector hit check: enemy must be within arc sector (angle ± spread/2) and range +10%
-    const HIT_RADIUS = ATTACK_RADIUS * 1.1;
+    const HIT_RADIUS = ATTACK_RADIUS * ATTACK_RADIUS_MULT * 1.1;
     const SPREAD = Math.PI * 0.7;
     const inSector = (ex, ey) => {
       const dx = ex - this.player.x, dy = ey - this.player.y;
@@ -444,9 +445,10 @@ class GameScene extends Phaser.Scene {
           this.tweens.add({ targets: this.boss, alpha: 0.6, duration: 80, yoyo: true });
           this.showDamageNumber(this.boss.x, this.boss.y - 20, 0, '#aaaaaa');
         } else {
-          const dmgBoss = 20 * this.player.stats.damage;
+          const isCritBoss = this.rollCrit();
+          const dmgBoss = 20 * this.player.stats.damage * (isCritBoss ? this.player.stats.critDamage : 1);
           this.boss.hp -= dmgBoss;
-          this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, '#ff8800');
+          this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, isCritBoss ? '#ff4400' : '#ff8800');
           this.updateBossHPBar();
           this.tweens.add({ targets: this.boss, alpha: 0.4, duration: 100, yoyo: true });
           if (this.boss.hp <= 0) this.killBoss();
@@ -468,12 +470,18 @@ class GameScene extends Phaser.Scene {
     });
   }
 
+  rollCrit() {
+    return Math.random() < this.player.stats.critChance;
+  }
+
   killPop(pop) {
     if (!pop.alive) return;
     pop.alive = false;
     this.killCount++;
     document.getElementById('h-kills').textContent = 'Kills: ' + this.killCount;
-    this.showDamageNumber(pop.x, pop.y, 20 * this.player.stats.damage, '#ffff44');
+    const isCrit = this.rollCrit();
+    const dmg = 20 * this.player.stats.damage * (isCrit ? this.player.stats.critDamage : 1);
+    this.showDamageNumber(pop.x, pop.y, dmg, isCrit ? '#ff4400' : '#ffff44');
     this.addXP(XP_PER_POP);
     this.tweens.add({
       targets: pop, scaleX: 0, scaleY: 0, alpha: 0, duration: 200,
@@ -511,6 +519,10 @@ class GameScene extends Phaser.Scene {
       this.player.level++;
       this.player.xpToNext = BASE_XP * this.player.level;
       document.getElementById('h-lvl').textContent = 'LVL ' + this.player.level;
+      // Full heal on level up
+      this.player.hp = this.player.stats.maxHp;
+      document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
+      this.updateHPBar();
       this.showLevelUp();
     }
     this.updateXPBar();
@@ -528,7 +540,10 @@ class GameScene extends Phaser.Scene {
         document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
         this.updateHPBar();
       }},
-      { name: 'MOVE',   desc: '+15% speed',      apply: () => { this.player.stats.moveSpeed *= 1.15; } }
+      { name: 'MOVE',   desc: '+15% speed',      apply: () => { this.player.stats.moveSpeed *= 1.15; } },
+      { name: 'CRIT%',  desc: '+5% crit chance', apply: () => { this.player.stats.critChance = Math.min(0.95, this.player.stats.critChance + 0.05); } },
+      { name: 'CRIT DMG', desc: '+100% crit dmg', apply: () => { this.player.stats.critDamage += 1.0; } },
+      { name: 'RANGE',  desc: '+5% attack range', apply: () => { ATTACK_RADIUS_MULT = (ATTACK_RADIUS_MULT || 1) * 1.05; } }
     ];
     const chosen = Phaser.Utils.Array.Shuffle(opts.slice()).slice(0, 3);
     const container = document.getElementById('levelup-cards');
@@ -784,6 +799,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
