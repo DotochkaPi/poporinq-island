@@ -446,7 +446,7 @@ class GameScene extends Phaser.Scene {
           this.showDamageNumber(this.boss.x, this.boss.y - 20, 0, '#aaaaaa');
         } else {
           const isCritBoss = this.rollCrit();
-          const dmgBoss = 20 * this.player.stats.damage * (isCritBoss ? 2 : 1);
+          const dmgBoss = this.rollDamage() * (isCritBoss ? 2 : 1);
           this.boss.hp -= dmgBoss;
           this.showDamageNumber(this.boss.x, this.boss.y, dmgBoss, isCritBoss ? '#ff4400' : '#ff8800');
           this.updateBossHPBar();
@@ -474,13 +474,19 @@ class GameScene extends Phaser.Scene {
     return Math.random() < this.player.stats.critChance;
   }
 
+  rollDamage() {
+    // Base damage: 16–25 (random per hit), scaled by stats.damage
+    const base = 16 + Math.random() * 9; // 16.0 to 25.0
+    return base * this.player.stats.damage;
+  }
+
   killPop(pop) {
     if (!pop.alive) return;
     pop.alive = false;
     this.killCount++;
     document.getElementById('h-kills').textContent = 'Kills: ' + this.killCount;
     const isCrit = this.rollCrit();
-    const dmg = 20 * this.player.stats.damage * (isCrit ? 2 : 1);
+    const dmg = this.rollDamage() * (isCrit ? 2 : 1);
     this.showDamageNumber(pop.x, pop.y, dmg, isCrit ? '#ff4400' : '#ffff44');
     this.addXP(XP_PER_POP);
     this.tweens.add({
@@ -798,6 +804,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
