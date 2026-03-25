@@ -475,7 +475,7 @@ class GameScene extends Phaser.Scene {
     const bx = Phaser.Math.Between(200, ARENA_W - 200);
     const by = 80;
     this.boss = this.add.sprite(bx, by, 'boss').setOrigin(0.5).setDepth(6);
-    this.boss.hp = 150 + 3 * this.waveNum * 30;
+    this.boss.hp = 150 + this.waveNum * 50;
     this.boss.maxHp = this.boss.hp;
     this.boss.alive = true;
     this.boss.setScale(0);
@@ -1073,6 +1073,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
