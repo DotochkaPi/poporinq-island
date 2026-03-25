@@ -202,7 +202,7 @@ const POP_DAMAGE_COOLDOWN = 1000;
 const XP_PER_POP = 10;
 const XP_PER_BOSS = 100;
 const BASE_XP = 50;
-const WAVE_COUNTS = [10, 15, 20, 25, 30];
+// Wave count: n = round(10 + (wave-1)*7 + (wave-1)^1.4)
 
 // ==================== RELICS ====================
 const RELICS = {
@@ -369,8 +369,8 @@ class GameScene extends Phaser.Scene {
 
   startWave() {
     this.waveNum++;
-    const n = WAVE_COUNTS[Math.min(this.waveNum - 1, WAVE_COUNTS.length - 1)]
-            + (this.waveNum > WAVE_COUNTS.length ? (this.waveNum - WAVE_COUNTS.length) * 5 : 0);
+    const w = this.waveNum - 1;
+    const n = Math.round(10 + w * 7 + Math.pow(w, 1.4));
     this.popToSpawn = n;
     this.popSpawned = 0;
     this.popOnMapLimit = Math.max(1, Math.ceil(n * 0.5));
@@ -964,6 +964,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
