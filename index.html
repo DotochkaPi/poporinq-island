@@ -110,6 +110,48 @@ canvas { display: block; }
 }
 #share-btn:hover { color: #aaddff; border-color: #aaddff; }
 
+/* Save score block */
+#save-score-block { margin-top: 2vmin; border-top: 1px solid #333; padding-top: 2vmin; }
+#save-score-block p { font-size: 3vmin; color: #aaa; margin-bottom: 1.5vmin; }
+#player-name-input {
+  font-size: 3.5vmin; padding: 1vmin 2vmin; border-radius: 6px;
+  border: 2px solid #556655; background: #0a1a0a; color: #fff;
+  width: 55vw; max-width: 280px; text-align: center; margin-bottom: 1.5vmin;
+}
+#save-btn {
+  padding: 1.5vmin 4vmin; font-size: 3.5vmin; font-weight: bold;
+  color: #44ff88; background: #0a1f0a; border: 2px solid #44ff88;
+  border-radius: 8px; cursor: pointer; margin-right: 1vmin;
+}
+#skip-save-btn {
+  padding: 1.5vmin 3vmin; font-size: 3vmin;
+  color: #556655; background: transparent; border: 1px solid #556655;
+  border-radius: 8px; cursor: pointer;
+}
+#save-result { font-size: 3vmin; color: #44ff88; margin-top: 1vmin; min-height: 3vmin; }
+
+/* Leaderboard overlay */
+#lb-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.92); display: none;
+  flex-direction: column; align-items: center; justify-content: flex-start;
+  z-index: 30; padding: 4vmin 2vmin; overflow-y: auto;
+}
+#lb-overlay h2 { font-size: 7vmin; color: #ffdd44; margin-bottom: 3vmin; }
+#lb-table { width: 100%; max-width: 600px; border-collapse: collapse; }
+#lb-table th { font-size: 2.5vmin; color: #888; padding: 1vmin; border-bottom: 1px solid #333; text-align: left; }
+#lb-table td { font-size: 3vmin; color: #fff; padding: 1.2vmin 1vmin; border-bottom: 1px solid #1a1a1a; }
+#lb-table tr.highlight td { color: #ffdd44; background: rgba(255,221,68,0.08); }
+#lb-table tr:nth-child(1) td { color: #ffd700; }
+#lb-table tr:nth-child(2) td { color: #c0c0c0; }
+#lb-table tr:nth-child(3) td { color: #cd7f32; }
+#lb-separator td { border-top: 1px dashed #444; color: #555 !important; font-size: 2.5vmin !important; }
+#lb-close-btn {
+  margin-top: 3vmin; padding: 2vmin 6vmin; font-size: 4vmin;
+  color: #aaa; background: transparent; border: 2px solid #444;
+  border-radius: 8px; cursor: pointer;
+}
+
 #start-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.88); display: flex;
@@ -231,12 +273,23 @@ canvas { display: block; }
   <button id="resume-btn" onclick="window._togglePause && window._togglePause()">[ RESUME ]</button>
 </div>
 
+<!-- Leaderboard overlay -->
+<div id="lb-overlay">
+  <h2>🏆 LEADERBOARD</h2>
+  <table id="lb-table">
+    <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Wave</th><th>Kills</th><th>Lvl</th></tr></thead>
+    <tbody id="lb-body"></tbody>
+  </table>
+  <button id="lb-close-btn" onclick="document.getElementById('lb-overlay').style.display='none'">[ CLOSE ]</button>
+</div>
+
 <!-- Start screen -->
 <div id="start-overlay">
   <div class="title">POPORING ISLAND</div>
   <div class="subtitle">⚔️ Survive the waves</div>
   <button id="start-btn" onclick="document.getElementById('start-overlay').style.display='none'; window._startGame && window._startGame()">[ START ]</button>
   <div class="hint">WASD / joystick to move · auto-attack</div>
+  <button id="lb-start-btn" onclick="window._openLeaderboard()" style="margin-top:3vmin;padding:1.5vmin 4vmin;font-size:3.5vmin;color:#aaa;background:transparent;border:2px solid #444;border-radius:8px;cursor:pointer;">[ LEADERBOARD ]</button>
 </div>
 
 <!-- Relic overlay -->
@@ -259,6 +312,15 @@ canvas { display: block; }
   <div class="gear" id="go-gear"></div>
   <div id="go-relics-title"></div>
   <div id="go-relics"></div>
+  <div id="save-score-block">
+    <p>Save your score?</p>
+    <div><input id="player-name-input" type="text" maxlength="20" placeholder="Your name"/></div>
+    <div>
+      <button id="save-btn" onclick="window._saveScore && window._saveScore()">[ SAVE SCORE ]</button>
+      <button id="skip-save-btn" onclick="document.getElementById('save-score-block').style.display='none'">skip</button>
+    </div>
+    <div id="save-result"></div>
+  </div>
   <button id="share-btn" onclick="window._shareResult && window._shareResult()">[ SHARE ]</button>
   <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
 </div>
@@ -279,6 +341,51 @@ const XP_PER_POP = 10;
 const XP_PER_BOSS = 100;
 const BASE_XP = 50;
 // Wave count: n = round(10 + (wave-1)*7 + (wave-1)^1.4)
+
+// ==================== SUPABASE ====================
+const SB_URL = 'https://rrkmyikquaapgdflrfoa.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJya215aWtxdWFhcGdkZmxyZm9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTk3ODYsImV4cCI6MjA5MDA5NTc4Nn0.0xwtZHLT2fVbIibqs1Ybxutz--HhdlIlKkgBkNyplio';
+
+const sbFetch = (path, opts) => fetch(SB_URL + path, {
+  ...opts,
+  headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', ...(opts && opts.headers) }
+});
+
+const ADJECTIVES = ['Red','Dark','Iron','Swift','Brave','Gold','Storm','Frost','Shadow','Steel','Wild','Grim'];
+const generateName = () => ADJECTIVES[Math.floor(Math.random()*ADJECTIVES.length)] + 'Knight#' + String(Math.floor(Math.random()*9000)+1000);
+
+const calcScore = (wave, kills, level, relics) => kills*10 + wave*100 + level*50 + relics*200;
+
+window._openLeaderboard = async (highlightName) => {
+  document.getElementById('lb-overlay').style.display = 'flex';
+  document.getElementById('lb-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888">Loading...</td></tr>';
+  try {
+    const res = await sbFetch('/rest/v1/leaderboard?select=*&order=score.desc&limit=100');
+    const rows = await res.json();
+    const top20 = rows.slice(0, 20);
+    let html = '';
+    top20.forEach((r, i) => {
+      const isMe = highlightName && r.name === highlightName;
+      html += `<tr class="${isMe ? 'highlight' : ''}">
+        <td>${i+1}</td><td>${r.name}</td><td>${r.score}</td>
+        <td>${r.wave}</td><td>${r.kills}</td><td>${r.level}</td>
+      </tr>`;
+    });
+    // Find player position if not in top 20
+    if (highlightName) {
+      const myIdx = rows.findIndex(r => r.name === highlightName);
+      if (myIdx >= 20) {
+        html += `<tr class="lb-separator"><td colspan="6">· · ·</td></tr>`;
+        const r = rows[myIdx];
+        html += `<tr class="highlight"><td>${myIdx+1}</td><td>${r.name}</td><td>${r.score}</td>
+          <td>${r.wave}</td><td>${r.kills}</td><td>${r.level}</td></tr>`;
+      }
+    }
+    document.getElementById('lb-body').innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:#888">No scores yet</td></tr>';
+  } catch(e) {
+    document.getElementById('lb-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#f44">Failed to load</td></tr>';
+  }
+};
 
 // ==================== SOUND ENGINE ====================
 const SFX = (() => {
@@ -1132,6 +1239,39 @@ class GameScene extends Phaser.Scene {
       relicsEl.innerHTML = '';
     }
 
+    // Setup name input with generated name
+    const genName = generateName();
+    document.getElementById('player-name-input').value = genName;
+    document.getElementById('save-score-block').style.display = 'block';
+    document.getElementById('save-result').textContent = '';
+
+    const score = calcScore(this.waveNum, this.killCount, this.player.level, this.collectedRelics.size);
+    const scene = this;
+
+    window._saveScore = async () => {
+      const name = document.getElementById('player-name-input').value.trim() || genName;
+      document.getElementById('save-btn').disabled = true;
+      document.getElementById('save-result').textContent = 'Saving...';
+      try {
+        const res = await sbFetch('/rest/v1/leaderboard', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ name, score, wave: scene.waveNum, kills: scene.killCount, level: scene.player.level, relics_count: scene.collectedRelics.size })
+        });
+        if (res.ok) {
+          document.getElementById('save-result').textContent = '✅ Saved! Opening leaderboard...';
+          document.getElementById('save-score-block').style.display = 'none';
+          setTimeout(() => window._openLeaderboard(name), 800);
+        } else {
+          document.getElementById('save-result').textContent = '❌ Error saving';
+          document.getElementById('save-btn').disabled = false;
+        }
+      } catch(e) {
+        document.getElementById('save-result').textContent = '❌ Network error';
+        document.getElementById('save-btn').disabled = false;
+      }
+    };
+
     document.getElementById('gameover-overlay').style.display = 'flex';
 
     // Share handler
@@ -1299,6 +1439,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
