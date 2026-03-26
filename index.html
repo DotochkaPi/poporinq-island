@@ -335,6 +335,104 @@ const SFX = (() => {
   };
 })();
 
+// ==================== AMBIENT MUSIC ====================
+const AMBIENT = (() => {
+  let ctx = null, running = false, nodes = [];
+
+  const getCtx = () => {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  };
+
+  // Drone layer: slow low rumble
+  const makeDrone = (c, freq, vol) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    const filter = c.createBiquadFilter();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    filter.type = 'lowpass';
+    filter.frequency.value = 300;
+    gain.gain.value = vol;
+    osc.connect(filter); filter.connect(gain); gain.connect(c.destination);
+    osc.start();
+    // Slow vibrato
+    const lfo = c.createOscillator();
+    const lfoGain = c.createGain();
+    lfo.frequency.value = 0.15;
+    lfoGain.gain.value = 1.5;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+    lfo.start();
+    nodes.push(osc, lfo, gain);
+    return gain;
+  };
+
+  // Pad layer: slow chord sweep
+  const makePad = (c) => {
+    const notes = [55, 82.5, 110, 130.8]; // A1, E2, A2, C3 minor feel
+    notes.forEach((freq, i) => {
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      const filter = c.createBiquadFilter();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      filter.type = 'lowpass';
+      filter.frequency.value = 600;
+      gain.gain.value = 0.04;
+      osc.connect(filter); filter.connect(gain); gain.connect(c.destination);
+      // Each note slowly pulses
+      const pulsePeriod = 4 + i * 1.3;
+      const pulse = c.createOscillator();
+      const pulseGain = c.createGain();
+      pulse.frequency.value = 1 / pulsePeriod;
+      pulseGain.gain.value = 0.025;
+      pulse.connect(pulseGain); pulseGain.connect(gain.gain);
+      osc.start(); pulse.start();
+      nodes.push(osc, pulse, gain);
+    });
+  };
+
+  // Occasional high ping
+  const schedulePing = (c) => {
+    if (!running) return;
+    const delay = 3000 + Math.random() * 7000;
+    setTimeout(() => {
+      if (!running) return;
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880 + Math.random() * 440;
+      gain.gain.setValueAtTime(0, c.currentTime);
+      gain.gain.linearRampToValueAtTime(0.04, c.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 2.5);
+      osc.connect(gain); gain.connect(c.destination);
+      osc.start(c.currentTime); osc.stop(c.currentTime + 2.6);
+      schedulePing(c);
+    }, delay);
+  };
+
+  return {
+    start() {
+      if (running) return;
+      running = true;
+      const c = getCtx();
+      if (c.state === 'suspended') c.resume();
+      makeDrone(c, 55, 0.06);   // A1 deep rumble
+      makeDrone(c, 82.5, 0.04); // E2 fifth
+      makePad(c);
+      schedulePing(c);
+    },
+    stop() {
+      running = false;
+      nodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} });
+      nodes = [];
+    },
+    setTense(on) {
+      // Boss fight: increase drone pitch slightly
+    }
+  };
+})();
+
 // ==================== RELICS ====================
 const RELIC_STATS = [
   { key: 'damage',      label: 'урон',           apply: (s, v) => { s.damage      += v; } },
@@ -518,6 +616,7 @@ class GameScene extends Phaser.Scene {
     window._startGame = () => {
       this.paused = false;
       document.getElementById('pause-btn').style.display = 'block';
+      AMBIENT.start();
       this.startWave();
     };
   }
@@ -1009,6 +1108,7 @@ class GameScene extends Phaser.Scene {
 
   showGameOver() {
     this.gameOver = true;
+    AMBIENT.stop();
     const KEYS = ['helm','sword','armor','gloves','boots'];
     const LBL  = ['HLM','SWD','ARM','GLV','BOT'];
     const gs = KEYS.map((k,i) => { const l = this.player.gear[k]||0; return LBL[i]+(l>0?'+'+l:''); }).join('  ');
@@ -1199,6 +1299,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
