@@ -280,6 +280,61 @@ const XP_PER_BOSS = 100;
 const BASE_XP = 50;
 // Wave count: n = round(10 + (wave-1)*7 + (wave-1)^1.4)
 
+// ==================== SOUND ENGINE ====================
+const SFX = (() => {
+  let ctx = null;
+  const getCtx = () => {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  };
+
+  const play = (freq, type, duration, volume, freqEnd, attack, decay) => {
+    try {
+      const c = getCtx();
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.connect(gain);
+      gain.connect(c.destination);
+      osc.type = type || 'square';
+      osc.frequency.setValueAtTime(freq, c.currentTime);
+      if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, c.currentTime + duration);
+      gain.gain.setValueAtTime(0, c.currentTime);
+      gain.gain.linearRampToValueAtTime(volume || 0.3, c.currentTime + (attack || 0.01));
+      gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
+      osc.start(c.currentTime);
+      osc.stop(c.currentTime + duration + (decay || 0));
+    } catch(e) {}
+  };
+
+  return {
+    swing:   () => { play(300, 'sawtooth', 0.08, 0.25, 150); play(500, 'square', 0.05, 0.1, 200); },
+    hit:     () => { play(150, 'square', 0.06, 0.3, 80); },
+    crit:    () => { play(400, 'sawtooth', 0.05, 0.35, 200); play(600, 'square', 0.08, 0.2, 300); },
+    popDie:  () => { play(440, 'square', 0.07, 0.2, 220); },
+    hurt:    () => { play(180, 'sawtooth', 0.1, 0.35, 100); },
+    levelup: () => {
+      [523, 659, 784, 1047].forEach((f, i) => {
+        setTimeout(() => play(f, 'square', 0.15, 0.2), i * 80);
+      });
+    },
+    bossSpawn: () => {
+      play(80, 'sawtooth', 0.5, 0.4, 60);
+      setTimeout(() => play(60, 'square', 0.4, 0.3, 50), 200);
+    },
+    bossKill: () => {
+      [523, 659, 784, 880, 1047].forEach((f, i) => {
+        setTimeout(() => play(f, 'square', 0.2, 0.25), i * 100);
+      });
+    },
+    relic:   () => {
+      [800, 1000, 1200, 1600].forEach((f, i) => {
+        setTimeout(() => play(f, 'sine', 0.2, 0.15), i * 60);
+      });
+    },
+    pause:   () => { play(300, 'square', 0.05, 0.15); },
+  };
+})();
+
 // ==================== RELICS ====================
 const RELIC_STATS = [
   { key: 'damage',      label: 'урон',           apply: (s, v) => { s.damage      += v; } },
@@ -450,6 +505,7 @@ class GameScene extends Phaser.Scene {
     // --- PAUSE ---
     window._togglePause = () => {
       if (this.gameOver) return;
+      SFX.pause();
       this.paused = !this.paused;
       document.getElementById('pause-btn').textContent = this.paused ? '▶' : '⏸';
       document.getElementById('pause-overlay').style.display = this.paused ? 'flex' : 'none';
@@ -512,6 +568,7 @@ class GameScene extends Phaser.Scene {
 
   spawnBoss() {
     this.waveState = 'boss';
+    SFX.bossSpawn();
     document.getElementById('h-wave').textContent = 'BOSS!';
     this.showMsg('BOSS!');
     const bx = Phaser.Math.Between(200, ARENA_W - 200);
@@ -612,6 +669,7 @@ class GameScene extends Phaser.Scene {
     const angleRad = target
       ? Math.atan2(target.y - this.player.y, target.x - this.player.x)
       : Math.PI / 2;
+    SFX.swing();
     this.showSlashEffect(angleRad);
 
     const minionsAlive = this.bossMinions.filter(m => m.alive);
@@ -703,13 +761,14 @@ class GameScene extends Phaser.Scene {
     const isCrit = this.rollCrit();
     const dmg = this.rollDamage() * (isCrit ? 2 : 1);
     pop.hp = (pop.hp || 1) - dmg;
+    if (isCrit) SFX.crit(); else SFX.hit();
     this.showDamageNumber(pop.x, pop.y, dmg, isCrit ? '#ff4400' : '#ffff44');
     if (pop.hp > 0) return; // still alive
 
     pop.alive = false;
+    SFX.popDie();
     this.killCount++;
     document.getElementById('h-kills').textContent = 'Kills: ' + this.killCount;
-    // Lifesteal on kill
     this.applyLifeSteal(dmg);
     this.addXP(XP_PER_POP);
     this.tweens.add({
@@ -732,6 +791,7 @@ class GameScene extends Phaser.Scene {
       targets: this.boss, scaleX: 0, scaleY: 0, alpha: 0, duration: 400,
       onComplete: () => { if (this.boss) { this.boss.destroy(); this.boss = null; } }
     });
+    SFX.bossKill();
     this.addXP(XP_PER_BOSS);
     this.showMsg('BOSS DEFEATED!');
     this.time.delayedCall(800, () => { if (!this.gameOver) this.dropEnchant(); });
@@ -748,6 +808,7 @@ class GameScene extends Phaser.Scene {
       this.player.level++;
       this.player.xpToNext = BASE_XP * this.player.level;
       document.getElementById('h-lvl').textContent = 'LVL ' + this.player.level;
+      SFX.levelup();
       // Full heal on level up
       this.player.hp = this.player.stats.maxHp;
       document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
@@ -839,6 +900,7 @@ class GameScene extends Phaser.Scene {
       return;
     }
 
+    SFX.relic();
     this.collectedRelics.set(pick, { quality, bonusText: '' }); // bonusText filled below
 
     // Apply random stat bonus
@@ -1082,6 +1144,7 @@ class GameScene extends Phaser.Scene {
         if (time - last > POP_DAMAGE_COOLDOWN) {
           this.player.lastDamageTime.set(pop, time);
           const dmg = POP_DAMAGE * Math.max(0.1, 1 - this.player.stats.defense * 0.15);
+          SFX.hurt();
           this.player.hp = Math.max(0, this.player.hp - dmg);
           document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
           this.updateHPBar();
@@ -1136,6 +1199,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
