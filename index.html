@@ -764,9 +764,22 @@ class GameScene extends Phaser.Scene {
     border.lineStyle(4, 0x1a3a15, 0.8);
     border.strokeRect(sandW, sandW, W-sandW*2, H-sandW*2);
 
-    // --- ANIMATED WATER SHIMMER ---
-    this._waterTime = 0;
-    this._waterShimmer = this.add.graphics().setDepth(-2);
+    // --- WATER SHIMMER (static graphics + alpha tween, no per-frame redraw) ---
+    const shimmerSpots = [
+      {x:-100, y:-100}, {x:ARENA_W/2, y:-150}, {x:ARENA_W+100, y:-80},
+      {x:-150, y:ARENA_H/2}, {x:ARENA_W+150, y:ARENA_H/3},
+      {x:ARENA_W/3, y:ARENA_H+120}, {x:ARENA_W+80, y:ARENA_H+100}
+    ];
+    shimmerSpots.forEach((s, i) => {
+      const g = this.add.graphics().setDepth(-2);
+      g.fillStyle(0x4a8ab8, 0.25);
+      g.fillEllipse(s.x, s.y, 70, 22);
+      this.tweens.add({
+        targets: g, alpha: { from: 0.4, to: 0.85 },
+        duration: 2000 + i * 400, ease: 'Sine.easeInOut',
+        yoyo: true, repeat: -1, delay: i * 300
+      });
+    });
   }
 
   preload() {
@@ -1549,20 +1562,6 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    // Water shimmer animation
-    this._waterTime += delta * 0.001;
-    this._waterShimmer.clear();
-    const shimmerSpots = [
-      {x:-100, y:-100}, {x:ARENA_W/2, y:-150}, {x:ARENA_W+100, y:-80},
-      {x:-150, y:ARENA_H/2}, {x:ARENA_W+150, y:ARENA_H/3},
-      {x:ARENA_W/3, y:ARENA_H+120}, {x:ARENA_W+80, y:ARENA_H+100}
-    ];
-    shimmerSpots.forEach((s, i) => {
-      const alpha = 0.15 + 0.12 * Math.sin(this._waterTime * 1.5 + i * 1.1);
-      this._waterShimmer.fillStyle(0x4a8ab8, alpha);
-      this._waterShimmer.fillEllipse(s.x + Math.sin(this._waterTime + i)*8, s.y, 60+Math.sin(this._waterTime*0.8+i)*15, 20);
-    });
-
     // Wave end check
     if (this.waveState === 'spawning' &&
         this.popSpawned >= this.popToSpawn &&
@@ -1641,6 +1640,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
