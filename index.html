@@ -88,10 +88,11 @@ canvas { display: block; }
 #gameover-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.85); display: none;
-  flex-direction: column; align-items: center; justify-content: center;
+  flex-direction: column; align-items: center; justify-content: flex-start;
   z-index: 20; pointer-events: auto;
+  overflow-y: auto; padding: 4vmin 2vmin;
 }
-#gameover-overlay .game-title { font-size: 4vmin; color: #ffdd44; margin-bottom: 1vmin; letter-spacing: 3px; opacity: 0.8; }
+#gameover-overlay .game-title { font-size: 4vmin; color: #ffdd44; margin-bottom: 1vmin; letter-spacing: 3px; opacity: 0.8; margin-top: 2vmin; }
 #gameover-overlay h1 { font-size: 10vmin; color: #ff4444; margin-bottom: 2vmin; }
 #gameover-overlay .stat { font-size: 4vmin; color: #fff; margin: 0.5vmin; }
 #gameover-overlay .gear { font-size: 3.5vmin; color: #ffdd44; margin: 1.5vmin; }
@@ -1151,7 +1152,14 @@ class GameScene extends Phaser.Scene {
       div.onclick = () => {
         card.apply();
         document.getElementById('levelup-overlay').style.display = 'none';
-        scene.paused = false;
+        // If relic was waiting for levelup to close — start wave now
+        if (scene._relicWaitingForLevelup) {
+          scene._relicWaitingForLevelup = false;
+          scene.paused = false;
+          scene.time.delayedCall(500, () => { if (!scene.gameOver) scene.startWave(); });
+        } else {
+          scene.paused = false;
+        }
       };
       container.appendChild(div);
     });
@@ -1236,8 +1244,15 @@ class GameScene extends Phaser.Scene {
     const scene = this;
     window._relicClose = () => {
       document.getElementById('relic-overlay').style.display = 'none';
-      scene.paused = false;
-      scene.time.delayedCall(500, () => { if (!scene.gameOver) scene.startWave(); });
+      // Only unpause if levelup overlay is also closed
+      const levelupOpen = document.getElementById('levelup-overlay').style.display === 'flex';
+      if (!levelupOpen) {
+        scene.paused = false;
+        scene.time.delayedCall(500, () => { if (!scene.gameOver) scene.startWave(); });
+      } else {
+        // levelup will start wave when closed
+        scene._relicWaitingForLevelup = true;
+      }
     };
   }
 
@@ -1552,6 +1567,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
