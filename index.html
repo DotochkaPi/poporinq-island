@@ -6,7 +6,7 @@
 <title>Poporing Island</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #0a1a0a; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1a3a5c; }
 canvas { display: block; }
 
 /* HUD overlay — always on top, always in screen pixels */
@@ -765,9 +765,11 @@ class GameScene extends Phaser.Scene {
     this.player.gear = { helm: 0, sword: 0, armor: 0, gloves: 0, boots: 0 };
 
     // --- CAMERA ---
-    this.cameras.main.setBounds(0, 0, ARENA_W, ARENA_H);
+    const margin = 200;
+    this.cameras.main.setBounds(-margin, -margin, ARENA_W + margin*2, ARENA_H + margin*2);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.setZoom(Math.min(this.scale.width, this.scale.height) / 500);
+    this.cameras.main.setBackgroundColor('#1a3a5c');
 
     // --- GROUPS & STATE ---
     this.pops = this.add.group();
@@ -1550,6 +1552,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
