@@ -87,49 +87,79 @@ canvas { display: block; }
 
 #gameover-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.85); display: none;
-  flex-direction: column; align-items: center; justify-content: flex-start;
-  z-index: 20; pointer-events: auto;
-  overflow-y: auto; padding: 4vmin 2vmin;
+  display: none; z-index: 20; pointer-events: auto;
+  background: rgba(0,0,0,0.6);
+  align-items: center; justify-content: center;
 }
-#gameover-overlay .game-title { font-size: 4vmin; color: #ffdd44; margin-bottom: 1vmin; letter-spacing: 3px; opacity: 0.8; margin-top: 2vmin; }
-#gameover-overlay h1 { font-size: 10vmin; color: #ff4444; margin-bottom: 2vmin; }
-#gameover-overlay .stat { font-size: 4vmin; color: #fff; margin: 0.5vmin; }
-#gameover-overlay .gear { font-size: 3.5vmin; color: #ffdd44; margin: 1.5vmin; }
-#restart-btn {
-  margin-top: 3vmin; padding: 2vmin 5vmin;
-  font-size: 4vmin; font-weight: bold; color: #44ff88;
-  background: #1a3a1a; border: 2px solid #44ff88; border-radius: 8px;
-  cursor: pointer;
+/* The panel itself — sized to match the image aspect ratio */
+#go-panel {
+  position: relative;
+  width: min(90vw, 60vh);
+  aspect-ratio: 853 / 1280;
+  background-image: url('assets/gameover-bg.jpg');
+  background-size: 100% 100%;
+  font-family: Arial, sans-serif;
 }
-#restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
-#share-btn {
-  margin-top: 1.5vmin; padding: 1.5vmin 4vmin;
-  font-size: 3.5vmin; font-weight: bold; color: #88ccff;
-  background: #0a1a2a; border: 2px solid #88ccff; border-radius: 8px;
-  cursor: pointer;
+/* All zones positioned as % of panel height/width */
+#go-title-zone {
+  position: absolute; top: 23.5%; left: 7%; width: 86%; height: 9%;
+  display: flex; align-items: center; justify-content: center;
 }
-#share-btn:hover { color: #aaddff; border-color: #aaddff; }
+#go-title-zone h1 { font-size: 5vmin; color: #ff4444; margin: 0; text-shadow: 0 0 10px #ff000088, -1px -1px 0 #000, 1px 1px 0 #000; letter-spacing: 2px; }
 
-/* Save score block */
-#save-score-block { margin-top: 2vmin; border-top: 1px solid #333; padding-top: 2vmin; }
-#save-score-block p { font-size: 3vmin; color: #aaa; margin-bottom: 1.5vmin; }
+#go-stats-zone {
+  position: absolute; top: 36%; left: 7%; width: 86%; height: 25%;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr auto;
+  gap: 1%; padding: 2%;
+}
+.go-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.go-cell .go-val { font-size: 4vmin; font-weight: bold; color: #ffdd44; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000; }
+.go-cell .go-lbl { font-size: 2.2vmin; color: #aaa; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000; }
+#go-gear-row {
+  grid-column: 1 / 4; display: flex; justify-content: center; gap: 3%; align-items: center;
+  font-size: 2.5vmin; color: #ffdd44; text-shadow: -1px -1px 0 #000;
+}
+#go-gear-row .inactive { color: #556655; }
+
+#go-relics-zone {
+  position: absolute; top: 63%; left: 8%; width: 84%; height: 17%;
+  display: flex; flex-direction: column; justify-content: center; gap: 2%;
+  overflow: hidden; padding: 1% 2%;
+}
+.go-relic-row { font-size: 2.3vmin; color: #ddd; text-shadow: -1px -1px 0 #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.go-relic-row .rbadge { font-weight: bold; margin-right: 1%; }
+
+#go-save-zone {
+  position: absolute; top: 81%; left: 8%; width: 84%; height: 7%;
+  display: flex; align-items: center; gap: 2%;
+}
 #player-name-input {
-  font-size: 3.5vmin; padding: 1vmin 2vmin; border-radius: 6px;
-  border: 2px solid #556655; background: #0a1a0a; color: #fff;
-  width: 55vw; max-width: 280px; text-align: center; margin-bottom: 1.5vmin;
+  flex: 1; font-size: 2.5vmin; padding: 0.5% 2%;
+  border-radius: 4px; border: 1px solid #556655;
+  background: rgba(0,0,0,0.7); color: #fff; min-width: 0;
 }
 #save-btn {
-  padding: 1.5vmin 4vmin; font-size: 3.5vmin; font-weight: bold;
-  color: #44ff88; background: #0a1f0a; border: 2px solid #44ff88;
-  border-radius: 8px; cursor: pointer; margin-right: 1vmin;
+  font-size: 2.5vmin; font-weight: bold; color: #44ff88;
+  background: rgba(0,30,0,0.8); border: 1px solid #44ff88;
+  border-radius: 4px; cursor: pointer; padding: 0.5% 2%; white-space: nowrap;
 }
 #skip-save-btn {
-  padding: 1.5vmin 3vmin; font-size: 3vmin;
-  color: #556655; background: transparent; border: 1px solid #556655;
-  border-radius: 8px; cursor: pointer;
+  font-size: 2.2vmin; color: #445544; background: transparent;
+  border: none; cursor: pointer; padding: 0.3%;
 }
-#save-result { font-size: 3vmin; color: #44ff88; margin-top: 1vmin; min-height: 3vmin; }
+#save-result { position: absolute; top: 88.5%; left: 8%; font-size: 2.3vmin; color: #44ff88; text-shadow: -1px -1px 0 #000; }
+
+#go-buttons-zone {
+  position: absolute; top: 86%; left: 7%; width: 86%; height: 8%;
+  display: flex; gap: 4%; align-items: center; justify-content: center;
+}
+#share-btn, #restart-btn {
+  flex: 1; height: 100%; font-size: 3vmin; font-weight: bold;
+  background: transparent; border: none; cursor: pointer;
+  text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
+}
+#share-btn { color: #88ccff; }
+#restart-btn { color: #44ff88; }
 
 /* Leaderboard overlay */
 #lb-overlay {
@@ -305,25 +335,41 @@ canvas { display: block; }
 
 <!-- Game over overlay -->
 <div id="gameover-overlay">
-  <div class="game-title">POPORING ISLAND</div>
-  <h1>GAME OVER</h1>
-  <div class="stat" id="go-kills"></div>
-  <div class="stat" id="go-wave"></div>
-  <div class="stat" id="go-level"></div>
-  <div class="gear" id="go-gear"></div>
-  <div id="go-relics-title"></div>
-  <div id="go-relics"></div>
-  <div id="save-score-block">
-    <p>Save your score?</p>
-    <div><input id="player-name-input" type="text" maxlength="20" placeholder="Your name"/></div>
-    <div>
-      <button id="save-btn" onclick="window._saveScore && window._saveScore()">[ SAVE SCORE ]</button>
-      <button id="skip-save-btn" onclick="document.getElementById('save-score-block').style.display='none'">skip</button>
+  <div id="go-panel">
+
+    <!-- GAME OVER title -->
+    <div id="go-title-zone"><h1>GAME OVER</h1></div>
+
+    <!-- Stats -->
+    <div id="go-stats-zone">
+      <div class="go-cell"><div class="go-val" id="go-kills-v">0</div><div class="go-lbl">KILLS</div></div>
+      <div class="go-cell"><div class="go-val" id="go-wave-v">0</div><div class="go-lbl">WAVE</div></div>
+      <div class="go-cell"><div class="go-val" id="go-score-v">0</div><div class="go-lbl">SCORE</div></div>
+      <div class="go-cell"><div class="go-val" id="go-level-v">0</div><div class="go-lbl">LEVEL</div></div>
+      <div class="go-cell" style="grid-column:2/4"></div>
+      <div id="go-gear-row"></div>
     </div>
-    <div id="save-result"></div>
+
+    <!-- Relics -->
+    <div id="go-relics-zone" style="display:none"></div>
+
+    <!-- Save score -->
+    <div id="save-score-block">
+      <div id="go-save-zone">
+        <input id="player-name-input" type="text" maxlength="20" placeholder="Your name"/>
+        <button id="save-btn" onclick="window._saveScore && window._saveScore()">SAVE</button>
+        <button id="skip-save-btn" onclick="document.getElementById('save-score-block').style.display='none'">skip</button>
+      </div>
+      <div id="save-result"></div>
+    </div>
+
+    <!-- Buttons -->
+    <div id="go-buttons-zone">
+      <button id="share-btn" onclick="window._shareResult && window._shareResult()">[ SHARE ]</button>
+      <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
+    </div>
+
   </div>
-  <button id="share-btn" onclick="window._shareResult && window._shareResult()">[ SHARE ]</button>
-  <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
@@ -1342,24 +1388,30 @@ class GameScene extends Phaser.Scene {
     const KEYS = ['helm','sword','armor','gloves','boots'];
     const LBL  = ['HLM','SWD','ARM','GLV','BOT'];
     const gs = KEYS.map((k,i) => { const l = this.player.gear[k]||0; return LBL[i]+(l>0?'+'+l:''); }).join('  ');
-    document.getElementById('go-kills').textContent  = 'Kills: '  + this.killCount;
-    document.getElementById('go-wave').textContent   = 'Wave: '   + this.waveNum;
-    document.getElementById('go-level').textContent  = 'Level: '  + this.player.level;
-    document.getElementById('go-gear').textContent   = gs;
+    const score = calcScore(this.waveNum, this.killCount, this.player.level, this.collectedRelics.size);
+    document.getElementById('go-kills-v').textContent = this.killCount;
+    document.getElementById('go-wave-v').textContent  = this.waveNum;
+    document.getElementById('go-level-v').textContent = this.player.level;
+    document.getElementById('go-score-v').textContent = score;
 
-    // Relics list
-    const relicsEl = document.getElementById('go-relics');
-    const relicsTitleEl = document.getElementById('go-relics-title');
+    // Gear row
+    const gearRow = document.getElementById('go-gear-row');
+    gearRow.innerHTML = KEYS.map((k,i) => {
+      const l = this.player.gear[k] || 0;
+      return '<span class="' + (l>0?'':'inactive') + '">' + LBL[i] + (l>0?'+'+l:'') + '</span>';
+    }).join(' ');
+
+    // Relics zone
+    const relicsZone = document.getElementById('go-relics-zone');
     if (this.collectedRelics.size > 0) {
-      relicsTitleEl.textContent = '✦ Реликвии (' + this.collectedRelics.size + ')';
-      relicsEl.innerHTML = [...this.collectedRelics.entries()].map(([name, data]) => {
-        const q = data.quality || { color: '#fff', label: '' };
-        return '<div class="relic-line" style="color:' + q.color + '">[' + q.label + '] '
-          + name + ' <span style="color:#888;font-size:2.4vmin">(' + data.bonusText + ')</span></div>';
+      relicsZone.style.display = 'flex';
+      relicsZone.innerHTML = [...this.collectedRelics.entries()].map(([name, data]) => {
+        const q = data.quality || { color: '#aaa', label: 'C' };
+        return '<div class="go-relic-row"><span class="rbadge" style="color:' + q.color + '">[' + q.label + ']</span>'
+          + name + ' <span style="color:#666">(' + (data.bonusText||'') + ')</span></div>';
       }).join('');
     } else {
-      relicsTitleEl.textContent = '';
-      relicsEl.innerHTML = '';
+      relicsZone.style.display = 'none';
     }
 
     // Setup name input with generated name
@@ -1368,18 +1420,18 @@ class GameScene extends Phaser.Scene {
     document.getElementById('save-score-block').style.display = 'block';
     document.getElementById('save-result').textContent = '';
 
-    const score = calcScore(this.waveNum, this.killCount, this.player.level, this.collectedRelics.size);
     const scene = this;
 
     window._saveScore = async () => {
       const name = document.getElementById('player-name-input').value.trim() || genName;
       document.getElementById('save-btn').disabled = true;
       document.getElementById('save-result').textContent = 'Saving...';
+      const saveScore = calcScore(scene.waveNum, scene.killCount, scene.player.level, scene.collectedRelics.size);
       try {
         const res = await sbFetch('/rest/v1/leaderboard', {
           method: 'POST',
           headers: { 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ name, score, wave: scene.waveNum, kills: scene.killCount, level: scene.player.level, relics_count: scene.collectedRelics.size })
+          body: JSON.stringify({ name, score: saveScore, wave: scene.waveNum, kills: scene.killCount, level: scene.player.level, relics_count: scene.collectedRelics.size })
         });
         if (res.ok) {
           document.getElementById('save-result').textContent = '✅ Saved! Opening leaderboard...';
@@ -1562,6 +1614,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
