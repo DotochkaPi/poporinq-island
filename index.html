@@ -87,49 +87,95 @@ canvas { display: block; }
 
 #gameover-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.85); display: none;
+  background: rgba(0,0,0,0.92); display: none;
   flex-direction: column; align-items: center; justify-content: flex-start;
   z-index: 20; pointer-events: auto;
-  overflow-y: auto; padding: 4vmin 2vmin;
+  overflow-y: auto; padding: 3vmin 3vmin 6vmin;
+  gap: 2vmin;
 }
-#gameover-overlay .game-title { font-size: 4vmin; color: #ffdd44; margin-bottom: 1vmin; letter-spacing: 3px; opacity: 0.8; margin-top: 2vmin; }
-#gameover-overlay h1 { font-size: 10vmin; color: #ff4444; margin-bottom: 2vmin; }
-#gameover-overlay .stat { font-size: 4vmin; color: #fff; margin: 0.5vmin; }
-#gameover-overlay .gear { font-size: 3.5vmin; color: #ffdd44; margin: 1.5vmin; }
-#restart-btn {
-  margin-top: 3vmin; padding: 2vmin 5vmin;
-  font-size: 4vmin; font-weight: bold; color: #44ff88;
-  background: #1a3a1a; border: 2px solid #44ff88; border-radius: 8px;
-  cursor: pointer;
+#gameover-overlay .game-title {
+  font-size: 3vmin; color: #888; letter-spacing: 4px;
+  text-transform: uppercase; margin-top: 1vmin;
 }
-#restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
-#share-btn {
-  margin-top: 1.5vmin; padding: 1.5vmin 4vmin;
-  font-size: 3.5vmin; font-weight: bold; color: #88ccff;
-  background: #0a1a2a; border: 2px solid #88ccff; border-radius: 8px;
-  cursor: pointer;
-}
-#share-btn:hover { color: #aaddff; border-color: #aaddff; }
+#gameover-overlay h1 { font-size: 9vmin; color: #ff4444; margin: 0; line-height: 1; }
 
-/* Save score block */
-#save-score-block { margin-top: 2vmin; border-top: 1px solid #333; padding-top: 2vmin; }
-#save-score-block p { font-size: 3vmin; color: #aaa; margin-bottom: 1.5vmin; }
+/* Stats card */
+.go-card {
+  width: 100%; max-width: 420px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 2vmin 3vmin;
+  box-sizing: border-box;
+}
+.go-card-title {
+  font-size: 2.5vmin; color: #888; text-transform: uppercase;
+  letter-spacing: 2px; margin-bottom: 1.5vmin;
+  border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1vmin;
+}
+.go-stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1vmin 2vmin;
+}
+.go-stat-item { font-size: 3.5vmin; color: #fff; }
+.go-stat-item span { color: #ffdd44; font-weight: bold; }
+.go-gear-row { font-size: 3vmin; color: #aaa; margin-top: 1.5vmin; letter-spacing: 1px; }
+.go-gear-row .active { color: #ffdd44; }
+
+/* Relics card */
+#go-relics-title {
+  font-size: 2.5vmin; color: #888; text-transform: uppercase;
+  letter-spacing: 2px; margin-bottom: 1.5vmin;
+  border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1vmin;
+}
+#go-relics { font-size: 3vmin; }
+#go-relics .relic-line { margin: 0.6vmin 0; display: flex; align-items: center; gap: 1vmin; }
+#go-relics .relic-badge {
+  font-size: 2.2vmin; padding: 0.2vmin 1vmin;
+  border-radius: 4px; border: 1px solid currentColor;
+  opacity: 0.8; white-space: nowrap; flex-shrink: 0;
+}
+#go-relics .relic-bonus { font-size: 2.4vmin; color: #666; }
+
+/* Save score */
+#save-score-block {
+  width: 100%; max-width: 420px; box-sizing: border-box;
+}
+.save-row {
+  display: flex; gap: 1.5vmin; align-items: center; flex-wrap: wrap;
+}
 #player-name-input {
-  font-size: 3.5vmin; padding: 1vmin 2vmin; border-radius: 6px;
-  border: 2px solid #556655; background: #0a1a0a; color: #fff;
-  width: 55vw; max-width: 280px; text-align: center; margin-bottom: 1.5vmin;
+  flex: 1; font-size: 3.5vmin; padding: 1.2vmin 2vmin; border-radius: 6px;
+  border: 1px solid #445544; background: #0a1a0a; color: #fff;
+  min-width: 0;
 }
 #save-btn {
-  padding: 1.5vmin 4vmin; font-size: 3.5vmin; font-weight: bold;
+  padding: 1.2vmin 3vmin; font-size: 3.5vmin; font-weight: bold;
   color: #44ff88; background: #0a1f0a; border: 2px solid #44ff88;
-  border-radius: 8px; cursor: pointer; margin-right: 1vmin;
+  border-radius: 8px; cursor: pointer; white-space: nowrap;
 }
+#save-btn:hover { color: #88ffaa; border-color: #88ffaa; }
 #skip-save-btn {
-  padding: 1.5vmin 3vmin; font-size: 3vmin;
-  color: #556655; background: transparent; border: 1px solid #556655;
+  font-size: 2.8vmin; color: #445544; background: transparent;
+  border: none; cursor: pointer; padding: 0.5vmin;
+}
+#save-result { font-size: 3vmin; color: #44ff88; min-height: 3vmin; margin-top: 0.5vmin; }
+
+/* Bottom buttons */
+.go-buttons {
+  display: flex; gap: 2vmin; margin-top: 1vmin;
+}
+#share-btn {
+  padding: 1.8vmin 4vmin; font-size: 3.5vmin; font-weight: bold;
+  color: #88ccff; background: rgba(10,30,50,0.6); border: 2px solid #88ccff;
   border-radius: 8px; cursor: pointer;
 }
-#save-result { font-size: 3vmin; color: #44ff88; margin-top: 1vmin; min-height: 3vmin; }
+#share-btn:hover { color: #aaddff; border-color: #aaddff; }
+#restart-btn {
+  padding: 1.8vmin 4vmin; font-size: 3.5vmin; font-weight: bold;
+  color: #44ff88; background: rgba(10,30,20,0.6); border: 2px solid #44ff88;
+  border-radius: 8px; cursor: pointer;
+}
+#restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
 
 /* Leaderboard overlay */
 #lb-overlay {
@@ -307,23 +353,40 @@ canvas { display: block; }
 <div id="gameover-overlay">
   <div class="game-title">POPORING ISLAND</div>
   <h1>GAME OVER</h1>
-  <div class="stat" id="go-kills"></div>
-  <div class="stat" id="go-wave"></div>
-  <div class="stat" id="go-level"></div>
-  <div class="gear" id="go-gear"></div>
-  <div id="go-relics-title"></div>
-  <div id="go-relics"></div>
+
+  <!-- Stats card -->
+  <div class="go-card">
+    <div class="go-card-title">Results</div>
+    <div class="go-stats-grid">
+      <div class="go-stat-item">💀 <span id="go-kills-val">0</span> kills</div>
+      <div class="go-stat-item">🌊 <span id="go-wave-val">0</span> wave</div>
+      <div class="go-stat-item">⭐ <span id="go-level-val">0</span> level</div>
+      <div class="go-stat-item">🏆 <span id="go-score-val">0</span> score</div>
+    </div>
+    <div class="go-gear-row" id="go-gear"></div>
+  </div>
+
+  <!-- Relics card -->
+  <div class="go-card" id="go-relics-card" style="display:none">
+    <div id="go-relics-title"></div>
+    <div id="go-relics"></div>
+  </div>
+
+  <!-- Save score -->
   <div id="save-score-block">
-    <p>Save your score?</p>
-    <div><input id="player-name-input" type="text" maxlength="20" placeholder="Your name"/></div>
-    <div>
-      <button id="save-btn" onclick="window._saveScore && window._saveScore()">[ SAVE SCORE ]</button>
+    <div class="save-row">
+      <input id="player-name-input" type="text" maxlength="20" placeholder="Your name"/>
+      <button id="save-btn" onclick="window._saveScore && window._saveScore()">[ SAVE ]</button>
       <button id="skip-save-btn" onclick="document.getElementById('save-score-block').style.display='none'">skip</button>
     </div>
     <div id="save-result"></div>
   </div>
-  <button id="share-btn" onclick="window._shareResult && window._shareResult()">[ SHARE ]</button>
-  <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
+
+  <!-- Bottom buttons -->
+  <div class="go-buttons">
+    <button id="share-btn" onclick="window._shareResult && window._shareResult()">[ SHARE ]</button>
+    <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
@@ -1332,25 +1395,38 @@ class GameScene extends Phaser.Scene {
     AMBIENT.stop();
     const KEYS = ['helm','sword','armor','gloves','boots'];
     const LBL  = ['HLM','SWD','ARM','GLV','BOT'];
-    const gs = KEYS.map((k,i) => { const l = this.player.gear[k]||0; return LBL[i]+(l>0?'+'+l:''); }).join('  ');
-    document.getElementById('go-kills').textContent  = 'Kills: '  + this.killCount;
-    document.getElementById('go-wave').textContent   = 'Wave: '   + this.waveNum;
-    document.getElementById('go-level').textContent  = 'Level: '  + this.player.level;
-    document.getElementById('go-gear').textContent   = gs;
+    const score = calcScore(this.waveNum, this.killCount, this.player.level, this.collectedRelics.size);
 
-    // Relics list
+    document.getElementById('go-kills-val').textContent = this.killCount;
+    document.getElementById('go-wave-val').textContent  = this.waveNum;
+    document.getElementById('go-level-val').textContent = this.player.level;
+    document.getElementById('go-score-val').textContent = score;
+
+    // Gear row
+    const gearEl = document.getElementById('go-gear');
+    gearEl.innerHTML = KEYS.map((k,i) => {
+      const l = this.player.gear[k] || 0;
+      const text = LBL[i] + (l > 0 ? '+' + l : '');
+      return '<span class="' + (l > 0 ? 'active' : '') + '">' + text + '</span>';
+    }).join(' ');
+
+    // Relics card
+    const relicsCard = document.getElementById('go-relics-card');
     const relicsEl = document.getElementById('go-relics');
     const relicsTitleEl = document.getElementById('go-relics-title');
     if (this.collectedRelics.size > 0) {
-      relicsTitleEl.textContent = '✦ Реликвии (' + this.collectedRelics.size + ')';
+      relicsCard.style.display = 'block';
+      relicsTitleEl.textContent = 'Реликвии (' + this.collectedRelics.size + ')';
       relicsEl.innerHTML = [...this.collectedRelics.entries()].map(([name, data]) => {
-        const q = data.quality || { color: '#fff', label: '' };
-        return '<div class="relic-line" style="color:' + q.color + '">[' + q.label + '] '
-          + name + ' <span style="color:#888;font-size:2.4vmin">(' + data.bonusText + ')</span></div>';
+        const q = data.quality || { color: '#aaa', label: 'Common' };
+        return '<div class="relic-line">'
+          + '<span class="relic-badge" style="color:' + q.color + ';border-color:' + q.color + '">' + q.label + '</span>'
+          + '<span style="color:#ddd">' + name + '</span>'
+          + '<span class="relic-bonus">(' + (data.bonusText || '') + ')</span>'
+          + '</div>';
       }).join('');
     } else {
-      relicsTitleEl.textContent = '';
-      relicsEl.innerHTML = '';
+      relicsCard.style.display = 'none';
     }
 
     // Setup name input with generated name
@@ -1358,8 +1434,6 @@ class GameScene extends Phaser.Scene {
     document.getElementById('player-name-input').value = genName;
     document.getElementById('save-score-block').style.display = 'block';
     document.getElementById('save-result').textContent = '';
-
-    const score = calcScore(this.waveNum, this.killCount, this.player.level, this.collectedRelics.size);
     const scene = this;
 
     window._saveScore = async () => {
@@ -1567,6 +1641,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
