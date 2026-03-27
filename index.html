@@ -99,17 +99,17 @@ canvas { display: block; }
 #gameover-overlay h1 {
   font-size: 10vmin; color: #ff4444; margin: 0;
   text-shadow: 0 0 20px #ff000066, -1px -1px 0 #000, 1px 1px 0 #000;
-  letter-spacing: 3px;
+  letter-spacing: 3px; white-space: nowrap;
 }
 #go-stats {
   font-size: 3.5vmin; color: #fff;
   text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
-  text-align: center;
+  text-align: center; white-space: nowrap;
 }
 #go-gear {
   font-size: 3vmin; color: #ffdd44;
   text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
-  text-align: center;
+  text-align: center; white-space: nowrap;
 }
 #go-gear .dim { color: #445544; }
 
@@ -159,13 +159,13 @@ canvas { display: block; }
 #restart-btn {
   flex: 1; padding: 2vmin; font-size: 4vmin; font-weight: bold;
   color: #44ff88; background: #0a1f0a; border: 2px solid #44ff88;
-  border-radius: 8px; cursor: pointer;
+  border-radius: 8px; cursor: pointer; white-space: nowrap;
 }
 #restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
 #share-btn {
   flex: 1; padding: 2vmin; font-size: 4vmin; font-weight: bold;
   color: #88ccff; background: #0a1a2a; border: 2px solid #88ccff;
-  border-radius: 8px; cursor: pointer;
+  border-radius: 8px; cursor: pointer; white-space: nowrap;
 }
 #share-btn:hover { color: #aaddff; border-color: #aaddff; }
 
@@ -357,15 +357,15 @@ canvas { display: block; }
       <p>Save your score?</p>
       <input id="player-name-input" type="text" maxlength="20" placeholder="Your name"/>
       <div id="go-save-row">
-        <button id="save-btn" onclick="window._saveScore && window._saveScore()">[ SAVE ]</button>
+        <button id="save-btn" onclick="window._saveScore && window._saveScore()">SAVE</button>
         <button id="skip-save-btn" onclick="document.getElementById('save-score-block').style.display='none'">skip</button>
       </div>
       <div id="save-result"></div>
     </div>
 
     <div id="go-btn-row">
-      <button id="restart-btn" onclick="location.reload()">[ RESTART ]</button>
-      <button id="share-btn" onclick="window._shareResult && window._shareResult()">[ SHARE ]</button>
+      <button id="restart-btn" onclick="location.reload()">RESTART</button>
+      <button id="share-btn" onclick="window._shareResult && window._shareResult()">SHARE</button>
     </div>
   </div>
 </div>
@@ -1613,6 +1613,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
