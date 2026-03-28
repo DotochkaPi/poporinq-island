@@ -7,14 +7,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #1a3a5c; }
+button, input { font-family: 'Press Start 2P', monospace; }
+html { width: 100%; height: 100%; }
+body { width: 100%; height: 100%; overflow: hidden; background: #1a3a5c; }
+canvas { display: block; width: 100% !important; height: 100% !important; }
 canvas { display: block; }
-button { font-family: 'Press Start 2P', monospace; }
-input  { font-family: Arial, sans-serif; }
 
 /* HUD overlay — always on top, always in screen pixels */
 #hud {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  position: fixed;
+  top: env(safe-area-inset-top, 0);
+  left: env(safe-area-inset-left, 0);
+  right: env(safe-area-inset-right, 0);
+  bottom: env(safe-area-inset-bottom, 0);
   pointer-events: none; z-index: 10;
   font-family: 'Press Start 2P', monospace;
   -webkit-text-stroke: 0;
@@ -70,7 +75,7 @@ input  { font-family: Arial, sans-serif; }
 }
 
 #levelup-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
   background: rgba(0,0,0,0.75); display: none;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 20; pointer-events: auto; font-family: 'Press Start 2P', monospace;
@@ -88,74 +93,97 @@ input  { font-family: Arial, sans-serif; }
 .lcard .cn { font-size: min(4vmin, 16px); color: #ffdd44; font-weight: bold; margin-bottom: 1vmin; word-break: break-word; }
 .lcard .cd { font-size: min(3vmin, 13px); color: #aaddff; word-break: break-word; }
 
-/* ===== GAME OVER — единый блок, не трогать по частям ===== */
 #gameover-overlay {
-  position: fixed; inset: 0; height: 100dvh;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
   background: rgba(0,0,0,0.88); display: none;
   flex-direction: column; align-items: center; justify-content: center;
-  z-index: 20; pointer-events: auto; text-align: center;
-  padding: env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+  z-index: 20; pointer-events: auto;
+  font-family: 'Press Start 2P', monospace; text-align: center;
 }
 #go-inner {
-  width: min(88vw, 340px);
-  display: flex; flex-direction: column; align-items: center; gap: 4vw;
-  font-family: 'Press Start 2P', monospace;
+  width: 90vw; max-width: 400px;
+  display: flex; flex-direction: column; align-items: center; gap: 2.5vmin;
+  color: #fff; text-align: center; padding: 0 4vw;
 }
+#go-inner * { text-align: center; }
+#go-btn-row { justify-content: center; }
+#go-save-row { justify-content: center; }
 #gameover-overlay h1 {
-  font-size: min(7.5vw, 32px); color: #ff4444;
-  text-shadow: 0 0 20px #ff000066; white-space: nowrap;
+  font-size: clamp(14px, 4.5vw, 32px); color: #ff4444; margin: 0;
+  text-shadow: 0 0 20px #ff000066, -1px -1px 0 #000, 1px 1px 0 #000;
+  letter-spacing: 2px; white-space: nowrap;
 }
-#go-stats  { font-size: min(2vw, 10px); color: #fff; white-space: nowrap; line-height: 2.5; }
-#go-gear   { font-size: min(1.8vw, 9px); color: #ffdd44; white-space: nowrap; }
+#go-stats {
+  font-size: clamp(7px, 2vw, 12px); color: #fff;
+  text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
+  text-align: center; white-space: nowrap; line-height: 2;
+}
+#go-gear {
+  font-size: clamp(7px, 2vmin, 12px); color: #ffdd44;
+  text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
+  text-align: center; white-space: nowrap;
+}
 #go-gear .dim { color: #445544; }
-/* Relics */
+
+/* Relics block */
 #go-relics-wrap { width: 100%; }
-#go-relics-title { font-size: min(2vw, 10px); color: #ffdd44; margin-bottom: 3vw; }
+#go-relics-title {
+  font-size: 3vmin; color: #ffdd44;
+  text-shadow: -1px -1px 0 #000;
+  margin-bottom: 1vmin;
+}
 #go-relics {
-  max-height: 20vw; overflow-y: auto; width: 100%;
-  display: flex; flex-direction: column; gap: 2vw;
-  font-family: Arial, sans-serif; font-size: min(3.8vw, 14px);
+  max-height: 22vmin; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 0.8vmin;
+  padding-right: 1vmin;
 }
 #go-relics::-webkit-scrollbar { width: 3px; }
 #go-relics::-webkit-scrollbar-thumb { background: #445544; border-radius: 2px; }
-/* Save */
-#save-score-block { width: 100%; }
-#save-score-block p { font-family: Arial, sans-serif; font-size: min(3.5vw, 13px); color: #888; margin-bottom: 3vw; }
-#player-name-input {
-  width: 100%; font-family: Arial, sans-serif; font-size: min(4vw, 15px);
-  padding: 2.5vw 3vw; border-radius: 6px;
-  border: 2px solid #445544; background: #0a140a; color: #fff;
-  text-align: center; margin-bottom: 3vw;
+.go-relic-name {
+  font-size: 2.8vmin;
+  text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
 }
-#go-save-row { display: flex; gap: 3vw; align-items: center; justify-content: center; }
+
+/* Save block */
+#save-score-block { width: 100%; }
+#save-score-block p { font-size: 2.8vmin; color: #888; margin-bottom: 1.5vmin; text-align: center; }
+#player-name-input {
+  width: 100%; box-sizing: border-box;
+  font-size: 3.5vmin; padding: 1.5vmin 2vmin; border-radius: 6px;
+  border: 2px solid #445544; background: #0a140a; color: #fff;
+  margin-bottom: 1.5vmin;
+}
+#go-save-row { display: flex; gap: 2vmin; align-items: center; }
 #save-btn {
-  padding: 2.5vw 5vw; font-size: min(2vw, 10px);
+  flex: 1; padding: 1.5vmin; font-size: clamp(7px, 2vmin, 12px);
   color: #44ff88; background: #0a1f0a; border: 2px solid #44ff88;
   border-radius: 8px; cursor: pointer; white-space: nowrap;
 }
 #save-btn:hover { color: #88ffaa; border-color: #88ffaa; }
 #skip-save-btn {
-  font-family: Arial, sans-serif; font-size: min(3.5vw, 13px);
-  color: #445544; background: transparent; border: none; cursor: pointer;
+  font-size: clamp(7px, 2vmin, 11px); color: #445544;
+  background: transparent; border: none; cursor: pointer; padding: 1vmin;
 }
-#save-result {
-  font-family: Arial, sans-serif; font-size: min(3.5vw, 13px);
-  color: #44ff88; margin-top: 2vw; min-height: 5vw; text-align: center;
+#save-result { font-size: 2.8vmin; color: #44ff88; margin-top: 1vmin; min-height: 3vmin; text-align: center; }
+
+/* Bottom buttons */
+#go-btn-row { display: flex; gap: 3vmin; width: 100%; }
+#restart-btn {
+  flex: 1; padding: 2vmin; font-size: clamp(8px, 2.2vmin, 14px);
+  color: #44ff88; background: #0a1f0a; border: 2px solid #44ff88;
+  border-radius: 8px; cursor: pointer; white-space: nowrap;
 }
-/* Buttons */
-#go-btn-row { display: flex; gap: 4vw; width: 100%; }
-#restart-btn, #share-btn {
-  flex: 1; padding: 3vw; white-space: nowrap;
-  font-size: min(2vw, 10px); border-radius: 8px; cursor: pointer;
-}
-#restart-btn { color: #44ff88; background: #0a1f0a; border: 2px solid #44ff88; }
 #restart-btn:hover { color: #88ffaa; border-color: #88ffaa; }
-#share-btn   { color: #88ccff; background: #0a1a2a; border: 2px solid #88ccff; }
+#share-btn {
+  flex: 1; padding: 2vmin; font-size: clamp(8px, 2.2vmin, 14px);
+  color: #88ccff; background: #0a1a2a; border: 2px solid #88ccff;
+  border-radius: 8px; cursor: pointer; white-space: nowrap;
+}
 #share-btn:hover { color: #aaddff; border-color: #aaddff; }
 
 /* Leaderboard overlay */
 #lb-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
   background: rgba(0,0,0,0.92); display: none;
   flex-direction: column; align-items: center; justify-content: flex-start;
   z-index: 50; padding: 4vmin 2vmin; overflow-y: auto;
@@ -176,7 +204,7 @@ input  { font-family: Arial, sans-serif; }
 }
 
 #start-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
   background: rgba(0,0,0,0.88); display: flex;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 30; font-family: 'Press Start 2P', monospace;
@@ -204,7 +232,7 @@ input  { font-family: Arial, sans-serif; }
 #pause-btn:hover { border-color: #88ffaa; color: #fff; }
 
 #pause-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
   background: rgba(0,0,0,0.7); display: none;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 20;
@@ -225,7 +253,7 @@ input  { font-family: Arial, sans-serif; }
 #go-relics-title { font-size: 3vmin; color: #ffdd44; margin-top: 2vmin; }
 
 #relic-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
   background: rgba(0,0,0,0.75); display: none;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 25; pointer-events: auto;
@@ -1597,6 +1625,9 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
+
+
 
 
 
