@@ -2,24 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Poporing Island</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 button, input { font-family: 'Press Start 2P', monospace; }
-html { width: 100%; height: 100%; }
-body { width: 100%; height: 100%; overflow: hidden; background: #1a3a5c; }
-canvas { display: block; width: 100% !important; height: 100% !important; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1a3a5c; }
 canvas { display: block; }
 
 /* HUD overlay — always on top, always in screen pixels */
 #hud {
-  position: fixed;
-  top: env(safe-area-inset-top, 0);
-  left: env(safe-area-inset-left, 0);
-  right: env(safe-area-inset-right, 0);
-  bottom: env(safe-area-inset-bottom, 0);
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 10;
   font-family: 'Press Start 2P', monospace;
   -webkit-text-stroke: 0;
@@ -75,7 +69,7 @@ canvas { display: block; }
 }
 
 #levelup-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.75); display: none;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 20; pointer-events: auto; font-family: 'Press Start 2P', monospace;
@@ -94,7 +88,7 @@ canvas { display: block; }
 .lcard .cd { font-size: min(3vmin, 13px); color: #aaddff; word-break: break-word; }
 
 #gameover-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.88); display: none;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 20; pointer-events: auto;
@@ -109,12 +103,12 @@ canvas { display: block; }
 #go-btn-row { justify-content: center; }
 #go-save-row { justify-content: center; }
 #gameover-overlay h1 {
-  font-size: clamp(14px, 4.5vw, 32px); color: #ff4444; margin: 0;
+  font-size: clamp(18px, 6vmin, 40px); color: #ff4444; margin: 0;
   text-shadow: 0 0 20px #ff000066, -1px -1px 0 #000, 1px 1px 0 #000;
   letter-spacing: 2px; white-space: nowrap;
 }
 #go-stats {
-  font-size: clamp(7px, 2vw, 12px); color: #fff;
+  font-size: clamp(8px, 2.2vmin, 14px); color: #fff;
   text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
   text-align: center; white-space: nowrap; line-height: 2;
 }
@@ -183,7 +177,7 @@ canvas { display: block; }
 
 /* Leaderboard overlay */
 #lb-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.92); display: none;
   flex-direction: column; align-items: center; justify-content: flex-start;
   z-index: 50; padding: 4vmin 2vmin; overflow-y: auto;
@@ -204,7 +198,7 @@ canvas { display: block; }
 }
 
 #start-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.88); display: flex;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 30; font-family: 'Press Start 2P', monospace;
@@ -232,7 +226,7 @@ canvas { display: block; }
 #pause-btn:hover { border-color: #88ffaa; color: #fff; }
 
 #pause-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.7); display: none;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 20;
@@ -253,7 +247,7 @@ canvas { display: block; }
 #go-relics-title { font-size: 3vmin; color: #ffdd44; margin-top: 2vmin; }
 
 #relic-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100dvh;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.75); display: none;
   flex-direction: column; align-items: center; justify-content: center;
   z-index: 25; pointer-events: auto;
@@ -1625,8 +1619,6 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
-
-
 
 
 
