@@ -128,7 +128,7 @@ canvas { display: block; }
 /* Relics block */
 #go-relics-wrap { width: 100%; }
 #go-relics-title {
-  font-size: 3vmin; color: #ffdd44;
+  font-size: clamp(8px, 2.5vw, 13px); color: #ffdd44;
   text-shadow: -1px -1px 0 #000;
   margin-bottom: 1vmin;
 }
@@ -140,13 +140,14 @@ canvas { display: block; }
 #go-relics::-webkit-scrollbar { width: 3px; }
 #go-relics::-webkit-scrollbar-thumb { background: #445544; border-radius: 2px; }
 .go-relic-name {
-  font-size: 2.8vmin;
+  font-size: clamp(10px, 3vw, 14px);
+  font-family: Arial, sans-serif;
   text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
 }
 
 /* Save block */
 #save-score-block { width: 100%; }
-#save-score-block p { font-size: 2.8vmin; color: #888; margin-bottom: 1.5vmin; text-align: center; }
+#save-score-block p { font-size: clamp(10px, 3vw, 14px); color: #888; margin-bottom: 1.5vmin; text-align: center; font-family: Arial, sans-serif; }
 #player-name-input {
   width: 100%; box-sizing: border-box;
   font-size: 3.5vmin; padding: 1.5vmin 2vmin; border-radius: 6px;
@@ -1625,6 +1626,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
