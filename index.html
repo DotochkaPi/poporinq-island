@@ -138,26 +138,31 @@ canvas { display: block; }
 }
 #go-gear .dim { color: #3a5a3a; }
 
-/* 4. Реликвии — визуально сбалансированный блок */
+/* 4. Реликвии */
 #go-relics-wrap {
   display: flex; flex-direction: column;
-  gap: clamp(6px, 1.8vw, 10px);
-  width: 100%;
+  gap: 8px; width: 100%;
 }
+/* Заголовок: фиксированный размер, не от vw */
 #go-relics-title {
   font-family: 'Press Start 2P', monospace;
-  font-size: clamp(11px, 3vw, 15px);  /* чуть крупнее статов, намного меньше h1 */
+  font-size: 11px;           /* фиксировано — не растёт на desktop */
   color: #ffdd44;
   white-space: nowrap;
   text-align: center;
+  letter-spacing: 0.5px;
+}
+/* На телефоне немного крупнее */
+@media (max-width: 480px) {
+  #go-relics-title { font-size: clamp(9px, 2.8vw, 11px); }
 }
 #go-relics {
-  max-height: clamp(100px, 25vw, 180px);
+  max-height: 150px;
   overflow-y: auto;
   display: flex; flex-direction: column;
   border: 1px solid rgba(255,221,68,0.12);
   border-radius: 4px;
-  padding: clamp(4px, 1.2vw, 8px);
+  padding: 4px 6px;
 }
 #go-relics::-webkit-scrollbar { width: 3px; }
 #go-relics::-webkit-scrollbar-thumb { background: #3a5a3a; border-radius: 2px; }
@@ -166,26 +171,25 @@ canvas { display: block; }
 .go-relic-row {
   display: flex;
   align-items: center;
-  gap: clamp(6px, 2vw, 10px);
-  padding: clamp(4px, 1.2vw, 7px) clamp(4px, 1.2vw, 8px);
+  gap: 8px;
+  padding: 5px 4px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
   font-family: Arial, sans-serif;
-  font-size: clamp(12px, 3.2vw, 14px);
+  font-size: 13px;           /* фиксировано — читаемо и не мелко */
   line-height: 1.35;
 }
+@media (max-width: 480px) {
+  .go-relic-row { font-size: clamp(11px, 3.2vw, 13px); }
+}
 .go-relic-row:last-child { border-bottom: none; }
-
 .go-relic-name {
-  flex: 1;
-  min-width: 0;           /* обязательно для ellipsis во flex */
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 .go-relic-count {
   flex-shrink: 0;
-  font-size: clamp(10px, 2.6vw, 12px);
-  color: rgba(255,255,255,0.4);
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
   white-space: nowrap;
 }
 
@@ -1705,6 +1709,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
