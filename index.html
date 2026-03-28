@@ -139,21 +139,50 @@ canvas { display: block; }
 #go-gear .dim { color: #3a5a3a; }
 
 /* 4. Реликвии */
-#go-relics-wrap { display: flex; flex-direction: column; gap: clamp(6px, 2vw, 10px); }
+#go-relics-wrap { display: flex; flex-direction: column; gap: clamp(5px, 1.5vw, 8px); }
 #go-relics-title {
   font-size: clamp(9px, 2.5vw, 13px);
-  color: #ffdd44; align-self: center;
+  color: #ffdd44;
+  white-space: nowrap;   /* никогда не переносить */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-self: center;
 }
 #go-relics {
-  max-height: clamp(80px, 22vw, 160px);
+  max-height: clamp(90px, 20vw, 150px);
   overflow-y: auto;
-  display: flex; flex-direction: column; gap: clamp(4px, 1.5vw, 8px);
-  font-family: Arial, sans-serif;
-  font-size: clamp(11px, 3.5vw, 15px);
+  display: flex; flex-direction: column;
+  gap: 0;                /* интервал задаём через padding строк */
   padding-right: 4px;
 }
 #go-relics::-webkit-scrollbar { width: 3px; }
-#go-relics::-webkit-scrollbar-thumb { background: #3a5a3a; border-radius: 2px; }
+#go-relics::-webkit-scrollbar-thumb { background: #2a4a2a; border-radius: 2px; }
+
+/* Строка реликвии — flex: название слева, счётчик справа */
+.go-relic-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: clamp(3px, 1vw, 5px) 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-family: Arial, sans-serif;
+  font-size: clamp(10px, 2.8vw, 13px);
+  line-height: 1.3;
+}
+.go-relic-row:last-child { border-bottom: none; }
+.go-relic-name {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;         /* важно для flex+ellipsis */
+}
+.go-relic-count {
+  flex-shrink: 0;
+  color: #aaa;
+  font-size: clamp(9px, 2.5vw, 11px);
+  white-space: nowrap;
+}
 
 /* 5–7. Save block */
 #save-score-block { display: flex; flex-direction: column; gap: clamp(8px, 2.5vw, 14px); }
@@ -1459,10 +1488,13 @@ class GameScene extends Phaser.Scene {
     const relicsTitleEl = document.getElementById('go-relics-title');
     if (this.collectedRelics.size > 0) {
       relicsWrap.style.display = 'block';
-      relicsTitleEl.textContent = 'Реликвии (' + this.collectedRelics.size + ')';
+      relicsTitleEl.textContent = '✦ Реликвии (' + this.collectedRelics.size + ')';
       relicsEl.innerHTML = [...this.collectedRelics.entries()].map(([name, data]) => {
         const color = (data.quality && data.quality.color) || '#aaa';
-        return '<div class="go-relic-name" style="color:' + color + '">' + name + '</div>';
+        return '<div class="go-relic-row">'
+          + '<span class="go-relic-name" style="color:' + color + '">' + name + '</span>'
+          + '<span class="go-relic-count">x1</span>'
+          + '</div>';
       }).join('');
     } else {
       relicsWrap.style.display = 'none';
@@ -1668,6 +1700,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
