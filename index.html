@@ -1675,7 +1675,8 @@ class GameScene extends Phaser.Scene {
         const last = this.player.lastDamageTime.get(this.boss) || 0;
         if (time - last > 800) {
           this.player.lastDamageTime.set(this.boss, time);
-          const dmg = 20 * Math.max(0.1, 1 - this.player.stats.defense * 0.15);
+          const bossDmgBase = 20 * (1 + (this.waveNum - 1) * 0.15); // +15% per wave
+          const dmg = bossDmgBase * Math.max(0.1, 1 - this.player.stats.defense * 0.15);
           this.player.hp = Math.max(0, this.player.hp - dmg);
           document.getElementById('h-hp').textContent = 'HP: ' + Math.floor(this.player.hp);
           this.updateHPBar();
@@ -1707,6 +1708,7 @@ new Phaser.Game(config);
 </script>
 </body>
 </html>
+
 
 
 
